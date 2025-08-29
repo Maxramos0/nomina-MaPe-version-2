@@ -1,0 +1,3138 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Nómina MaPe</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+:root{
+  --brand:#2E7D32;--brand-2:#43A047;--bg:#f5f7fb;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#e5e7eb;--shadow:0 10px 25px rgba(0,0,0,.06);
+  --tile-bg:#f3f4f6;--tile-br:#e5e7eb;--tile-t:#374151;--tile-bg-h:#eef2f7;
+  --primary: #0d6efd;--secondary: #6c757d;--success: #198754;--danger: #dc3545;--warning: #ffc107;--info: #0dcaf0;--light: #f8f9fa;--dark: #212529;
+}
+*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+/* SweetAlert al frente */
+.swal2-container{z-index:2147483647!important;position:fixed!important;inset:0!important}
+
+/* Header + layout */
+header{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+header h1{margin:0;font-size:18px}.badge{font-size:12px;background:#ffffff20;border:1px solid #ffffff40;padding:3px 8px;border-radius:999px}
+.wrap{max-width:1200px;margin:14px auto;padding:0 12px}.card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px}
+.muted{color:var(--muted);font-size:13px}
+
+/* Transición de vistas */
+.view-enter{opacity:0;transform:translateY(8px)}
+.view-enter.view-enter-active{opacity:1;transform:none;transition:opacity .22s,transform .22s}
+@media (prefers-reduced-motion:reduce){.view-enter,.view-enter.view-enter-active{opacity:1;transform:none;transition:none}}
+
+/* Dashboard 3x2 (rollback diseño anterior, botones suaves en gris claro) */
+.dash-frame{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:var(--shadow)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,64px);gap:6px}
+.tile{
+  display:grid;place-items:center;height:64px;border:1px solid var(--tile-br);
+  background:var(--tile-bg);color:var(--tile-t);border-radius:10px;font-weight:800;letter-spacing:.2px;font-size:9px;
+  cursor:pointer;user-select:none;transition:.18s box-shadow,.18s transform,.18s background,.18s color
+}
+.tile:hover{background:var(--tile-bg-h);box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
+
+/* Botones */
+.btn{border:1px solid transparent;background:var(--brand);color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600;transition:.2s}
+.btn:hover{filter:brightness(1.05)}.btn.outline{background:#fff;color:var(--brand);border-color:var(--brand)}.btn.small{padding:5px 8px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* Tabla empleados */
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:950px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:middle}
+th{background:#f9fafb;font-weight:700}
+
+/* Chips */
+.chip{padding:4px 8px;border-radius:999px;font-size:12px;display:inline-block;border:1px solid transparent;font-weight:700}
+.chip-planta{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.chip-prueba{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.chip-solo{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.chip-yes{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.chip-no{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.chip-alta{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.chip-baja{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+
+/* Dialog */
+dialog{width:min(860px,92vw);border:none;border-radius:12px;padding:0;box-shadow:var(--shadow);z-index:1000000}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.modal-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:10px 12px}.modal-actions{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:var(--muted)}
+.field input,.field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px}
+.radios{display:flex;gap:12px;align-items:center}
+
+/* Login (rollback colorido original, sin sugerencias) */
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,var(--brand),var(--brand-2))}
+.login-card{width:min(420px,92vw)}
+
+/* Vista previa PDF (overlay) */
+#preview{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:100000;align-items:center;justify-content:center;padding:16px}
+#previewCard{background:#fff;border-radius:12px;max-width:1200px;width:100%;max-height:90vh;display:flex;flex-direction:column;border:1px solid var(--border);box-shadow:var(--shadow)}
+#previewHead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border)}
+#printArea{padding:8px 10px;overflow:auto}
+#printArea h1{font-size:14px;margin:0 0 2px}.pmuted{color:#6b7280;font-size:10px;margin:0 0 6px}
+/* Tabla del reporte (igual a impresión) */
+#printArea table{width:100%;border-collapse:collapse;table-layout:fixed}
+#printArea th,#printArea td{border-bottom:1px solid #e5e7eb;padding:4px 5px;font-size:9.2px;vertical-align:middle;line-height:1.22}
+#printArea th{background:#f3f4f6;text-align:left}
+.c{text-align:center}.nw{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wrapcell{white-space:normal;word-break:break-word}
+
+/* Estilos adicionales para gráficos */
+.chart-container {
+  position: relative;
+  margin: 20px 0;
+  height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: white;
+}
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+.stat-card {
+  background-color: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--brand);
+  margin: 10px 0;
+}
+.stat-title {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+.highlights {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--brand-2);
+  text-align: center;
+  padding: 15px;
+  margin: 15px 0;
+  border: 2px solid var(--brand-2);
+  border-radius: 10px;
+  background-color: rgba(67, 160, 71, 0.1);
+}
+.filter-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+/* Estilos de Bootstrap personalizados */
+.sidebar {
+    background-color: var(--dark);
+    min-height: 100vh;
+    color: white;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar .nav-link i {
+    margin-right: 10px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.avatar-sm {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+}
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-wrapper i {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.search-wrapper input {
+    padding-left: 35px;
+}
+</style>
+</head><body>
+<!-- LOGIN -->
+<section id="view-login" class="center" aria-hidden="false">
+  <div class="card login-card">
+    <h2 style="margin:0 0 10px">Nómina MaPe — Acceso</h2>
+    <div class="field"><label for="loginUser">Usuario</label><input id="loginUser" autocomplete="off" autofocus></div>
+    <div class="field" style="margin-top:6px"><label for="loginPass">Contraseña</label><input id="loginPass" type="password" autocomplete="off"></div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button class="btn" id="btnLogin" type="button">Ingresar</button></div>
+  </div>
+</section>
+<!-- APP -->
+<section id="view-app" style="display:none" aria-hidden="true">
+  <header>
+    <div style="display:flex;align-items:center;gap:10px"><h1>Nómina MaPe</h1><span class="badge" id="badgeWhere">Dashboard</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="badge" id="userBadge">Usuario: admin</span>
+      <button class="btn outline" id="btnLogout">Cerrar sesión</button>
+    </div>
+  </header>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-lg-2 sidebar p-3 d-none d-lg-block">
+        <h5 class="mb-4 ps-2 pt-3">Sistema de Nómina</h5>
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="#" data-route="dashboard">
+              <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="empleados">
+              <i class="bi bi-people"></i> Empleados
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="aguinaldo">
+              <i class="bi bi-star"></i> Aguinaldo
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="aguinaldo-acumulado">
+              <i class="bi bi-star-half"></i> Aguinaldo Acumulado
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="nomina">
+              <i class="bi bi-cash-stack"></i> Nómina
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="pagos">
+              <i class="bi bi-credit-card"></i> Pagos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="bonos">
+              <i class="bi bi-plus-circle"></i> Bonos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="reportes">
+              <i class="bi bi-bar-chart"></i> Reportes
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-route="estadisticas">
+              <i class="bi bi-graph-up"></i> Estadísticas
+            </a>
+          </li>
+          <li class="nav-item" id="configMenu">
+            <a class="nav-link" href="#" data-route="configuracion">
+              <i class="bi bi-gear"></i> Configuración
+            </a>
+          </li>
+        </ul>
+        <div class="mt-auto pt-5">
+          <div class="d-flex align-items-center mt-5">
+            <div class="avatar">
+              <i class="bi bi-person"></i>
+            </div>
+            <div class="ms-2">
+              <div id="sidebarUserBadge">Administrador</div>
+              <small class="text-muted">Sistema de Nómina</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Main Content -->
+      <div class="col-lg-10 col-md-12 main-content">
+        <section class="card dash-frame view" id="page-dashboard">
+          <h2 style="margin:0 0 6px">Dashboard</h2>
+          <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="stat-card">
+                <div class="stat-title">Total Empleados</div>
+                <div class="stat-value" id="dashEmpleados">0</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="stat-card">
+                <div class="stat-title">Nómina Actual</div>
+                <div class="stat-value" id="dashNomina">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="stat-card">
+                <div class="stat-title">Aguinaldo Acumulado</div>
+                <div class="stat-value" id="dashAguinaldo">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="stat-card">
+                <div class="stat-title">Semana Actual</div>
+                <div class="stat-value" id="dashSemana">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="tiles">
+            <div class="tile" data-route="empleados">EMPLEADOS</div>
+            <div class="tile" data-route="aguinaldo">AGUINALDO</div>
+            <div class="tile" data-route="aguinaldo-acumulado">AGUINALDO ACUMULADO</div>
+            <div class="tile" data-route="nomina">NÓMINA</div>
+            <div class="tile" data-route="pagos">PAGOS</div>
+            <div class="tile" data-route="bonos">BONOS</div>
+            <div class="tile" data-route="reportes">REPORTES</div>
+            <div class="tile" data-route="estadisticas">ESTADÍSTICAS</div>
+            <div class="tile" data-route="configuracion">CONFIGURACIÓN</div>
+          </div>
+        </section>
+
+        <section class="card view" id="page-empleados" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <h2 style="margin:0">Empleados</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn outline" data-route="dashboard">Dashboard</button>
+              <span class="muted">Activos: <strong id="totalEmpleados">0</strong></span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+            <button class="btn" id="btnNuevo">Registrar empleado nuevo</button>
+            <button class="btn outline" id="btnPdf">PDF</button>
+            <div class="search-wrapper" style="flex:1;min-width:320px;">
+              <i class="bi bi-search"></i>
+              <input id="inputSearch" class="form-control" placeholder="Buscar #, nombre, depto, puesto, planta/prueba/solo alta mape">
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top:8px">
+            <table id="tablaEmpleados" class="table">
+              <thead><tr>
+                <th># Emp</th><th>Nombre</th><th>Dep./Línea</th><th>Puesto</th><th>INFONAVIT</th><th>Transporte</th><th>Ingreso MaPe</th><th>Ingreso IMSS</th><th>Estatus</th><th>Laboral</th><th>Acciones</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card view" id="page-aguinaldo" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Aguinaldo</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <p>Acumulado de aguinaldo por empleado según horas trabajadas.</p>
+            <div class="table-wrap" style="margin-top:12px">
+              <table id="tablaAguinaldo" class="table">
+                <thead>
+                  <tr>
+                    <th># Emp</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Sueldo Hora Aguinaldo</th>
+                    <th>Horas Trabajadas</th>
+                    <th>Acumulado</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:8px">
+              <p><strong>Total acumulado:</strong> <span id="totalAguinaldo">$0.00</span></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card view" id="page-aguinaldo-acumulado" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Aguinaldo Acumulado</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <div class="highlights" id="totalAguinaldoAcumulado">
+              Total Aguinaldo Acumulado: $0.00
+            </div>
+            <div class="table-wrap" style="margin-top:12px">
+              <table id="tablaAguinaldoAcumulado" class="table">
+                <thead>
+                  <tr>
+                    <th># Emp</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Departamento</th>
+                    <th>Acumulado</th>
+                    <th>Estatus</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        
+        <section class="card view" id="page-nomina" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Nómina</h2>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="badge" id="semanaInfo">Semana 34: 18/08/2025 - 24/08/2025</div>
+              <button class="btn outline" data-route="dashboard">Dashboard</button>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn" id="btnCerrarNomina">Cerrar nómina</button>
+                <button class="btn outline" id="btnReabrirNomina" style="display:none">Reabrir nómina</button>
+                <select id="filtroEmpleados" class="form-select">
+                  <option value="todos">Todos los empleados</option>
+                  <option value="Operativo">Solo Operativos</option>
+                  <option value="Administrativo">Solo Administrativos</option>
+                </select>
+              </div>
+              <div>
+                <div class="search-wrapper">
+                  <i class="bi bi-search"></i>
+                  <input id="buscarNomina" class="form-control" placeholder="Buscar empleado..." style="width:280px">
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="tablaNomina" class="table">
+                <thead>
+                  <tr>
+                    <th># Emp</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Horas</th>
+                    <th>Sueldo/hr</th>
+                    <th>Subtotal</th>
+                    <th>INFONAVIT</th>
+                    <th>Transporte</th>
+                    <th>Otros Desc.</th>
+                    <th>Extras</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div style="margin-top:15px; text-align:right">
+              <span class="muted">Estado: <strong id="estadoNomina">Abierta</strong></span>
+            </div>
+          </div>
+        </section>
+        
+        <section class="card view" id="page-pagos" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Pagos</h2>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="badge" id="semanaPagosInfo">Semana Actual: 34</div>
+              <button class="btn outline" data-route="dashboard">Dashboard</button>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="selectSemana" class="form-select" style="min-width:220px">
+                  <option value="">Seleccionar semana...</option>
+                </select>
+                <select id="filtroTipoPagos" class="form-select">
+                  <option value="todos">Todos los empleados</option>
+                  <option value="Operativo">Solo Operativos</option>
+                  <option value="Administrativo">Solo Administrativos</option>
+                </select>
+              </div>
+              <div>
+                <div class="search-wrapper">
+                  <i class="bi bi-search"></i>
+                  <input id="buscarPagos" class="form-control" placeholder="Buscar empleado..." style="width:280px">
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="tablaPagos" class="table">
+                <thead>
+                  <tr>
+                    <th># Emp</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Horas</th>
+                    <th>Sueldo/hr</th>
+                    <th>Subtotal</th>
+                    <th>Descuentos</th>
+                    <th>Total</th>
+                    <th>Aguinaldo</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:16px">
+              <button class="btn outline" id="btnImprimirPagos">Imprimir reporte</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card view" id="page-bonos" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Bonos de Producción</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+              <div>
+                <button class="btn" id="btnAgregarBono">Agregar Bono</button>
+              </div>
+              <div>
+                <select id="semanaBonoSelect" class="form-select" style="min-width:220px">
+                  <option value="">Semana actual</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="card" style="margin-bottom:20px">
+              <h3 style="margin-top:0">Distribución de Bonos por Departamento</h3>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Departamento</th>
+                    <th>Porcentaje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Soldadura 1</td><td>35%</td></tr>
+                  <tr><td>Soldadura 2</td><td>35%</td></tr>
+                  <tr><td>Soldadura 3</td><td>35%</td></tr>
+                  <tr><td>Soldadura 4</td><td>35%</td></tr>
+                  <tr><td>Prep</td><td>20%</td></tr>
+                  <tr><td>Chispas</td><td>5%</td></tr>
+                  <tr><td>Indirectos</td><td>8%</td></tr>
+                  <tr><td>Ensamble</td><td>17%</td></tr>
+                  <tr><td>Pintura/Sandblast</td><td>9%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="table-wrap">
+              <table id="tablaBonos" class="table">
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Costo Total</th>
+                    <th>Semana</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            
+            <div style="margin-top:20px">
+              <h3>Distribución por Departamento</h3>
+              <div class="table-wrap">
+                <table id="tablaDistribucionBonos" class="table">
+                  <thead>
+                    <tr>
+                      <th>Departamento</th>
+                      <th>Empleados</th>
+                      <th>Bono por Hora</th>
+                      <th>Total Asignado</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="card view" id="page-reportes" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Reportes</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <h3>Aguinaldo Acumulado</h3>
+            <div class="card" style="margin-top:8px;padding:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div>
+                  <h4 style="margin:0 0 8px">Resumen de Aguinaldo</h4>
+                  <p>Acumulado total: <strong id="reporteAguinaldoTotal">$0.00</strong></p>
+                </div>
+                <button class="btn outline" id="btnReporteAguinaldo">Imprimir reporte</button>
+              </div>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Cantidad de empleados</th>
+                    <th>Monto acumulado</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaResumenAguinaldo">
+                  <tr>
+                    <td>Operativos</td>
+                    <td>0</td>
+                    <td>$0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Administrativos</td>
+                    <td>0</td>
+                    <td>$0.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <h3 style="margin-top:20px">Historial de Nómina</h3>
+            <div class="card" style="margin-top:8px;padding:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <select id="reporteSemanas" class="form-select" style="min-width:220px">
+                  <option value="">Seleccionar semana...</option>
+                </select>
+                <button class="btn outline" id="btnReporteNomina">Imprimir reporte</button>
+              </div>
+              <div class="table-wrap">
+                <table id="tablaReporteNomina" class="table">
+                  <thead>
+                    <tr>
+                      <th># Emp</th>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Horas</th>
+                      <th>Subtotal</th>
+                      <th>Descuentos</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card view" id="page-estadisticas" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Estadísticas</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <div class="filter-group">
+              <select id="periodoEstadisticas" class="form-select">
+                <option value="anual">Anual</option>
+                <option value="mensual">Mensual</option>
+                <option value="semanal" selected>Semanal</option>
+              </select>
+              <select id="tipoEstadisticas" class="form-select">
+                <option value="nomina">Nómina</option>
+                <option value="aguinaldo">Aguinaldo</option>
+                <option value="bonos">Bonos</option>
+              </select>
+            </div>
+            
+            <div class="stats-container">
+              <div class="stat-card">
+                <div class="stat-title">Total Nómina</div>
+                <div class="stat-value" id="statTotalNomina">$0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Promedio por Empleado</div>
+                <div class="stat-value" id="statPromedio">$0.00</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Total Horas Trabajadas</div>
+                <div class="stat-value" id="statHoras">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-title">Total Bonos</div>
+                <div class="stat-value" id="statBonos">$0.00</div>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <canvas id="chartNomina"></canvas>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px">
+              <div class="chart-container">
+                <canvas id="chartDistribucion"></canvas>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartTendencia"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card view" id="page-configuracion" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h2 style="margin:0">Configuración</h2>
+            <button class="btn outline" data-route="dashboard">Dashboard</button>
+          </div>
+          <div style="margin-top:16px">
+            <h3>Gestión de Usuarios</h3>
+            <div style="margin-bottom:15px">
+              <button class="btn" id="btnNuevoUsuario">Agregar Usuario</button>
+            </div>
+            <div class="table-wrap">
+              <table id="tablaUsuarios" class="table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            
+            <h3 style="margin-top:20px">Catálogos</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:10px">
+              <div class="card" style="padding:15px">
+                <h4 style="margin-top:0">Departamentos</h4>
+                <div class="table-wrap">
+                  <table id="tablaDepartamentos" class="table">
+                    <thead>
+                      <tr>
+                        <th>Departamento</th>
+                        <th>% Bono</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Soldadura 1</td><td>35%</td></tr>
+                      <tr><td>Soldadura 2</td><td>35%</td></tr>
+                      <tr><td>Soldadura 3</td><td>35%</td></tr>
+                      <tr><td>Soldadura 4</td><td>35%</td></tr>
+                      <tr><td>Prep</td><td>20%</td></tr>
+                      <tr><td>Chispas</td><td>5%</td></tr>
+                      <tr><td>Indirectos</td><td>8%</td></tr>
+                      <tr><td>Ensamble</td><td>17%</td></tr>
+                      <tr><td>Pintura/Sandblast</td><td>9%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="card" style="padding:15px">
+                <h4 style="margin-top:0">Puestos</h4>
+                <div class="table-wrap">
+                  <table id="tablaPuestos" class="table">
+                    <thead>
+                      <tr>
+                        <th>Puesto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>ALMACENISTA</td></tr>
+                      <tr><td>MONTACARGUISTA</td></tr>
+                      <tr><td>SOLDADOR</td></tr>
+                      <tr><td>CHISPERO</td></tr>
+                      <tr><td>SEGUETA</td></tr>
+                      <tr><td>LASER</td></tr>
+                      <tr><td>DOBLADOR</td></tr>
+                      <tr><td>FINANZAS</td></tr>
+                      <tr><td>SISTEMAS</td></tr>
+                      <tr><td>RECURSOS HUMANOS</td></tr>
+                      <tr><td>DISEÑO</td></tr>
+                      <tr><td>COMPRAS</td></tr>
+                      <tr><td>GERENTE DE PRODUCCION</td></tr>
+                      <tr><td>SUPERVISOR DE ENSAMBLE</td></tr>
+                      <tr><td>LIDER DE AREA</td></tr>
+                      <tr><td>PLASMA</td></tr>
+                      <tr><td>PINTOR</td></tr>
+                      <tr><td>SAND BLAST</td></tr>
+                      <tr><td>CALCAS</td></tr>
+                      <tr><td>RETOCADOR</td></tr>
+                      <tr><td>EJES MADERA</td></tr>
+                      <tr><td>EJES HIDRAULICO</td></tr>
+                      <tr><td>EJES</td></tr>
+                      <tr><td>CALIDAD</td></tr>
+                      <tr><td>ELECTRICO</td></tr>
+                      <tr><td>ACCESORIOS</td></tr>
+                      <tr><td>MATERIALISTA</td></tr>
+                      <tr><td>LIMPIEZA</td></tr>
+                      <tr><td>MANTENIMIENTO</td></tr>
+                      <tr><td>TRANSPORTISTA</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Vista previa PDF -->
+<section id="preview"><div id="previewCard">
+  <div id="previewHead"><strong id="previewTitle">Vista previa — Reporte de Empleados</strong>
+    <div style="display:flex;gap:8px">
+      <button class="btn outline" id="btnClosePreview">Cerrar</button>
+      <button class="btn" id="btnPrint">Imprimir / Guardar</button>
+    </div>
+  </div>
+  <div id="printArea"></div>
+</div></section>
+
+<!-- IFRAME oculto para imprimir sin duplicados -->
+<iframe id="printFrame" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;"></iframe>
+
+<!-- Form Empleado -->
+<dialog id="dlgEmpleado"><form id="formEmpleado">
+  <div class="modal-head"><h3 id="modalTitle" style="margin:0">Registrar empleado</h3><button type="button" class="btn outline" id="cerrarModal">Cerrar</button></div>
+  <div class="modal-body"><div class="form-grid">
+    <div class="field"><label for="nombres">Nombre(s)</label><input id="nombres" name="nombres" required autocomplete="off"></div>
+    <div class="field"><label for="apPaterno">Apellido Paterno</label><input id="apPaterno" name="apPaterno" required autocomplete="off"></div>
+    <div class="field"><label for="apMaterno">Apellido Materno</label><input id="apMaterno" name="apMaterno" required autocomplete="off"></div>
+    <div class="field"><label for="numEmpleado">Número de empleado</label><input id="numEmpleado" name="numEmpleado" required autocomplete="off" inputmode="numeric" pattern="^[^\\s]+$" title="Sin espacios"></div>
+    <div class="field"><label for="sueldoHora">Sueldo por hora</label><input id="sueldoHora" name="sueldoHora" type="number" step="0.01" min="0" required></div>
+    <div class="field"><label for="sueldoHoraAguinaldo">Sueldo hora aguinaldo</label><input id="sueldoHoraAguinaldo" name="sueldoHoraAguinaldo" type="number" step="0.01" min="0" required></div>
+    <div class="field"><label>¿Cuenta con INFONAVIT?</label>
+      <div class="radios"><label><input type="radio" name="tieneInfonavit" value="si"> Sí</label><label><input type="radio" name="tieneInfonavit" value="no" checked> No</label></div>
+    </div>
+    <div class="field" id="grupoMontoInfonavit" style="display:none"><label for="montoInfonavit">Monto INFONAVIT</label><input id="montoInfonavit" name="montoInfonavit" type="number" step="0.01" min="0"></div>
+    <div class="field"><label>¿Usa transporte?</label>
+      <div class="radios"><label><input type="radio" name="usaTransporte" value="si"> Sí</label><label><input type="radio" name="usaTransporte" value="no" checked> No</label></div>
+    </div>
+    <div class="field" id="grupoMontoTransporte" style="display:none"><label for="montoTransporte">Monto transporte</label><input id="montoTransporte" name="montoTransporte" type="number" step="0.01" min="0"></div>
+    <div class="field"><label for="tipoEmpleado">Tipo de empleado</label><select id="tipoEmpleado" name="tipoEmpleado" required><option value="" disabled selected>Selecciona una opción</option><option value="Operativo">Operativo</option><option value="Administrativo">Administrativo</option></select></div>
+    <div class="field"><label for="departamento">Departamento</label>
+      <select id="departamento" name="departamento" required>
+        <option value="" disabled selected>Selecciona departamento</option>
+        <option value="Soldadura 1">Soldadura 1</option>
+        <option value="Soldadura 2">Soldadura 2</option>
+        <option value="Soldadura 3">Soldadura 3</option>
+        <option value="Soldadura 4">Soldadura 4</option>
+        <option value="Prep">Prep</option>
+        <option value="Chispas">Chispas</option>
+        <option value="Indirectos">Indirectos</option>
+        <option value="Ensamble">Ensamble</option>
+        <option value="Pintura/Sandblast">Pintura/Sandblast</option>
+        <option value="Administrativo">Administrativo</option>
+      </select>
+    </div>
+    <div class="field"><label for="puesto">Puesto</label>
+      <select id="puesto" name="puesto" required>
+        <option value="" disabled selected>Selecciona puesto</option>
+        <option value="ALMACENISTA">ALMACENISTA</option>
+        <option value="MONTACARGUISTA">MONTACARGUISTA</option>
+        <option value="SOLDADOR">SOLDADOR</option>
+        <option value="CHISPERO">CHISPERO</option>
+        <option value="SEGUETA">SEGUETA</option>
+        <option value="LASER">LASER</option>
+        <option value="DOBLADOR">DOBLADOR</option>
+        <option value="FINANZAS">FINANZAS</option>
+        <option value="SISTEMAS">SISTEMAS</option>
+        <option value="RECURSOS HUMANOS">RECURSOS HUMANOS</option>
+        <option value="DISEÑO">DISEÑO</option>
+        <option value="COMPRAS">COMPRAS</option>
+        <option value="GERENTE DE PRODUCCION">GERENTE DE PRODUCCION</option>
+        <option value="SUPERVISOR DE ENSAMBLE">SUPERVISOR DE ENSAMBLE</option>
+        <option value="LIDER DE AREA">LIDER DE AREA</option>
+        <option value="PLASMA">PLASMA</option>
+        <option value="PINTOR">PINTOR</option>
+        <option value="SAND BLAST">SAND BLAST</option>
+        <option value="CALCAS">CALCAS</option>
+        <option value="RETOCADOR">RETOCADOR</option>
+        <option value="EJES MADERA">EJES MADERA</option>
+        <option value="EJES HIDRAULICO">EJES HIDRAULICO</option>
+        <option value="EJES">EJES</option>
+        <option value="CALIDAD">CALIDAD</option>
+        <option value="ELECTRICO">ELECTRICO</option>
+        <option value="ACCESORIOS">ACCESORIOS</option>
+        <option value="MATERIALISTA">MATERIALISTA</option>
+        <option value="LIMPIEZA">LIMPIEZA</option>
+        <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+        <option value="TRANSPORTISTA">TRANSPORTISTA</option>
+      </select>
+    </div>
+    <div class="field"><label for="fechaIngresoMaPe">Fecha de ingreso MaPe</label><input id="fechaIngresoMaPe" name="fechaIngresoMaPe" type="date" required><small class="muted">No se permiten fechas futuras.</small></div>
+    <div class="field"><label for="fechaIngresoIMSS">Fecha de ingreso IMSS</label><input id="fechaIngresoIMSS" name="fechaIngresoIMSS" type="date"><small class="muted">Opcional. No se permiten fechas futuras.</small></div>
+  </div></div>
+  <div class="modal-actions"><button class="btn outline" type="button" id="cancelarForm">Cancelar</button><button class="btn" type="submit" id="btnGuardar">Guardar</button></div>
+</form></dialog>
+
+<!-- Form Nómina -->
+<dialog id="dlgNomina"><form id="formNomina">
+  <div class="modal-head"><h3 id="modalTitleNomina" style="margin:0">Registrar horas trabajadas</h3><button type="button" class="btn outline" id="cerrarModalNomina">Cerrar</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="field"><label>Empleado</label><div id="nombreEmpleadoNomina" style="font-weight:bold;padding:8px 0"></div></div>
+      <div class="field"><label>Semana</label><div id="semanaNomina" style="font-weight:bold;padding:8px 0"></div></div>
+      <div class="field"><label for="horasTrabajadas">Horas trabajadas</label><input id="horasTrabajadas" name="horasTrabajadas" type="number" min="0" max="60" step="0.5" required></div>
+      <div class="field"><label>Sueldo por hora</label><div id="sueldoHoraNomina" style="font-weight:bold;padding:8px 0"></div></div>
+      
+      <div class="field"><label>Deducciones</label>
+        <div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:5px">
+          <div style="margin-bottom:10px"><label><input type="checkbox" id="aplicarInfonavit"> Aplicar INFONAVIT</label> <span id="montoInfonavitNomina" class="muted"></span></div>
+          <div style="margin-bottom:10px"><label><input type="checkbox" id="aplicarTransporte"> Aplicar Transporte</label> <span id="montoTransporteNomina" class="muted"></span></div>
+          
+          <div style="margin-top:15px">
+            <button type="button" class="btn small" id="btnAgregarDeduccion">+ Agregar deducción</button>
+          </div>
+          <div id="listaDeduccionesNomina" style="margin-top:10px"></div>
+        </div>
+      </div>
+      
+      <div class="field" id="campoExtras" style="display:none">
+        <label for="extrasNomina">Extras/Bonos</label>
+        <input id="extrasNomina" name="extrasNomina" type="number" step="0.01" min="0" value="0">
+        <small class="muted">Sólo administradores y gerentes pueden editar este campo</small>
+      </div>
+    </div>
+  </div>
+  <div class="modal-actions"><button class="btn outline" type="button" id="cancelarFormNomina">Cancelar</button><button class="btn" type="submit" id="btnGuardarNomina">Guardar</button></div>
+</form></dialog>
+
+<!-- Form Bono -->
+<dialog id="dlgBono"><form id="formBono">
+  <div class="modal-head"><h3 style="margin:0">Registrar Bono</h3><button type="button" class="btn outline" id="cerrarModalBono">Cerrar</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="field"><label for="conceptoBono">Concepto</label><input id="conceptoBono" name="conceptoBono" required autocomplete="off"></div>
+      <div class="field"><label for="montoBono">Monto Total (100%)</label><input id="montoBono" name="montoBono" type="number" step="0.01" min="0" required></div>
+      <div class="field"><label>Semana</label><div id="semanaActualBono" style="font-weight:bold;padding:8px 0"></div></div>
+    </div>
+    <div style="margin-top:15px">
+      <p>Este monto se distribuirá entre los departamentos según los porcentajes establecidos y las horas trabajadas de cada empleado.</p>
+    </div>
+  </div>
+  <div class="modal-actions"><button class="btn outline" type="button" id="cancelarFormBono">Cancelar</button><button class="btn" type="submit" id="btnGuardarBono">Guardar</button></div>
+</form></dialog>
+
+<!-- Form Usuario -->
+<dialog id="dlgUsuario"><form id="formUsuario">
+  <div class="modal-head"><h3 id="modalTitleUsuario" style="margin:0">Registrar Usuario</h3><button type="button" class="btn outline" id="cerrarModalUsuario">Cerrar</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="field"><label for="nombreUsuario">Nombre Completo</label><input id="nombreUsuario" name="nombreUsuario" required autocomplete="off"></div>
+      <div class="field"><label for="username">Usuario</label><input id="username" name="username" required autocomplete="off"></div>
+      <div class="field"><label for="password">Contraseña</label><input id="password" name="password" type="password" required autocomplete="off"></div>
+      <div class="field"><label for="rolUsuario">Rol</label>
+        <select id="rolUsuario" name="rolUsuario" required>
+          <option value="" disabled selected>Seleccionar rol</option>
+          <option value="admin">Administrador</option>
+          <option value="gerencia">Gerencia</option>
+          <option value="rh">Recursos Humanos</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="modal-actions"><button class="btn outline" type="button" id="cancelarFormUsuario">Cancelar</button><button class="btn" type="submit" id="btnGuardarUsuario">Guardar</button></div>
+</form></dialog>
+
+<script>
+"use strict";
+/* ===== Utilidades ===== */
+let A=false; // auth
+let currentUser = null; // usuario actual
+const KEY="nomina_mape_empleados", KEYLOG="nomina_mape_logs", KEYU="nomina_mape_usuarios";
+let editing=null, query="", lastPreviewRows=0;
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>r.querySelectorAll(s);
+const T=(m,t="success")=>{const a={success:{icon:"success",title:m},error:{icon:"error",title:m},warning:{icon:"warning",title:m},info:{icon:"info",title:m}}; (window.Swal?Swal.fire({...a[t],timer:1400,showConfirmButton:!1}):alert(m));}
+const C=(ti,tx,b="Sí, continuar")=>window.Swal?Swal.fire({icon:"question",title:ti,text:tx,showCancelButton:!0,confirmButtonText:b,cancelButtonText:"Cancelar"}):Promise.resolve({isConfirmed:confirm(`${ti}\n${tx}`)});
+const D=()=>{const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),da=String(d.getDate()).padStart(2,"0");return`${y}-${m}-${da}`};
+const E=s=>s?new Date(s+"T00:00:00"):null, M=(dt,m)=>new Date(dt.getFullYear(),dt.getMonth()+m,dt.getDate()), F=s=>s?E(s).getTime()>E(D()).getTime():!1;
+const R=n=>(n??0).toLocaleString("es-MX",{style:"currency",currency:"MXN"});
+const H=(s="")=>s.replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+const read=()=>JSON.parse(localStorage.getItem(KEY)||"[]"), write=a=>localStorage.setItem(KEY,JSON.stringify(a));
+const log=(action,extra)=>{const L=JSON.parse(localStorage.getItem(KEYLOG)||"[]");L.unshift({action,at:new Date().toISOString(),extra});localStorage.setItem(KEYLOG,JSON.stringify(L))};
+
+/* ===== Constantes Adicionales para Nómina y Pagos ===== */
+const KEYN="nomina_mape_nomina", KEYP="nomina_mape_pagos", KEYA="nomina_mape_aguinaldo", KEYB="nomina_mape_bonos";
+const TIPOS_DESCUENTO = ["Préstamo", "Guantes", "Zapatos", "Overall", "Material", "Otro"];
+
+/* ===== Porcentajes de Bonos por Departamento ===== */
+const PORCENTAJES_BONOS = {
+  "Soldadura 1": 35,
+  "Soldadura 2": 35,
+  "Soldadura 3": 35,
+  "Soldadura 4": 35,
+  "Prep": 20,
+  "Chispas": 5,
+  "Indirectos": 8,
+  "Ensamble": 17,
+  "Pintura/Sandblast": 9
+};
+
+/* ===== Utilidades para Semanas ===== */
+function getSemanaActual() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const diff = now - start;
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  const semana = Math.ceil(diff / oneWeek);
+  return semana;
+}
+
+function getFechasSemana(numSemana, year = new Date().getFullYear()) {
+  // Primer día del año
+  const firstDay = new Date(year, 0, 1);
+  // Ajuste para que la semana comience en lunes (0 es domingo, 1 es lunes, etc.)
+  const dayOfWeek = firstDay.getDay();
+  const daysToAdd = dayOfWeek === 0 ? 1 : (8 - dayOfWeek); // Si es domingo, ajustar a lunes
+  
+  // Fecha de inicio de la primera semana
+  const firstWeekStart = new Date(year, 0, daysToAdd);
+  
+  // Calcular inicio de la semana requerida
+  const weekStart = new Date(firstWeekStart);
+  weekStart.setDate(weekStart.getDate() + (numSemana - 1) * 7);
+  
+  // Calcular fin de la semana (6 días después)
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  
+  // Formatear fechas
+  const formatDate = (date) => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${date.getFullYear()}`;
+  };
+  
+  return {
+    inicio: formatDate(weekStart),
+    fin: formatDate(weekEnd),
+    inicioObj: weekStart,
+    finObj: weekEnd,
+    texto: `Semana ${numSemana}: ${formatDate(weekStart)} - ${formatDate(weekEnd)}`
+  };
+}
+
+/* ===== Funciones para Nómina, Pagos y Aguinaldo ===== */
+function readNomina() {
+  return JSON.parse(localStorage.getItem(KEYN) || "{}");
+}
+
+function writeNomina(n) {
+  localStorage.setItem(KEYN, JSON.stringify(n));
+}
+
+function readPagos() {
+  return JSON.parse(localStorage.getItem(KEYP) || "[]");
+}
+
+function writePagos(p) {
+  localStorage.setItem(KEYP, JSON.stringify(p));
+}
+
+function readAguinaldo() {
+  return JSON.parse(localStorage.getItem(KEYA) || "{}");
+}
+
+function writeAguinaldo(a) {
+  localStorage.setItem(KEYA, JSON.stringify(a));
+}
+
+function readBonos() {
+  return JSON.parse(localStorage.getItem(KEYB) || "[]");
+}
+
+function writeBonos(b) {
+  localStorage.setItem(KEYB, JSON.stringify(b));
+}
+
+function readUsuarios() {
+  // Verifica si hay usuarios, si no, crea el administrador por defecto
+  const usuarios = JSON.parse(localStorage.getItem(KEYU) || "[]");
+  if (usuarios.length === 0) {
+    const defaultUsers = [
+      { id: generateId(), username: "admin", password: "mape123", nombre: "Administrador", rol: "admin" },
+      { id: generateId(), username: "gerente", password: "mape123", nombre: "Gerente", rol: "gerencia" },
+      { id: generateId(), username: "rh", password: "mape123", nombre: "Recursos Humanos", rol: "rh" }
+    ];
+    localStorage.setItem(KEYU, JSON.stringify(defaultUsers));
+    return defaultUsers;
+  }
+  return usuarios;
+}
+
+function writeUsuarios(u) {
+  localStorage.setItem(KEYU, JSON.stringify(u));
+}
+
+function calcularAguinaldo(horasTrabajadas, sueldoHoraAguinaldo) {
+  // 20% del sueldo hora aguinaldo multiplicado por las horas trabajadas
+  return (sueldoHoraAguinaldo * 0.2) * horasTrabajadas;
+}
+
+/* ===== Util para generar IDs únicos ===== */
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5).toUpperCase();
+}
+
+/* ===== LOGIN — sólido, limpia campos al salir y cierra overlays ===== */
+(()=>{ if(window.__NMP_LOGIN_INIT__) return; window.__NMP_LOGIN_INIT__=1;
+document.addEventListener("DOMContentLoaded",()=>{const vL=$("#view-login"),vA=$("#view-app"),iU=$("#loginUser"),iP=$("#loginPass"),bIn=$("#btnLogin"),bOut=$("#btnLogout"),preview=$("#preview"),dlg=$("#dlgEmpleado");
+  if(!vL||!vA||!iU||!iP||!bIn||!bOut){T("Error de login: faltan nodos del DOM.","error");return}
+  
+  function hardClose(){ if(preview) { preview.style.display="none"; const pa=$("#printArea"); if(pa) pa.innerHTML=""; } if(dlg&&dlg.open) try{dlg.close()}catch{} }
+  function showApp(){vL.style.display="none";vA.style.display="";vL.setAttribute("aria-hidden","true");vA.setAttribute("aria-hidden","false");}
+  function showLogin(){vA.style.display="none";vL.style.display="";vA.setAttribute("aria-hidden","true");vL.setAttribute("aria-hidden","false");A=false;currentUser=null;iU.value="";iP.value="";hardClose();}
+  
+  function doLogin(){
+    const u=(iU.value||"").trim(),p=iP.value||"";
+    if(!u||!p){T("Completa usuario y contraseña","warning");return}
+    
+    const usuarios = readUsuarios();
+    const user = usuarios.find(user => user.username === u && user.password === p);
+    
+    if(user) {
+      A = true;
+      currentUser = user;
+      T(`Bienvenido, ${user.nombre}`,"success");
+      iU.value="";
+      iP.value="";
+      $("#userBadge").textContent = `Usuario: ${user.nombre} (${user.rol})`;
+      $("#sidebarUserBadge").textContent = user.nombre;
+      
+      // Ocultar sección de configuración para usuarios RH
+      if(user.rol === "rh") {
+        const configTile = $(".tile[data-route='configuracion']");
+        const configMenu = $("#configMenu");
+        if(configTile) configTile.style.display = "none";
+        if(configMenu) configMenu.style.display = "none";
+      } else {
+        const configTile = $(".tile[data-route='configuracion']");
+        const configMenu = $("#configMenu");
+        if(configTile) configTile.style.display = "";
+        if(configMenu) configMenu.style.display = "";
+      }
+      
+      showApp();
+      g("dashboard");
+      window.scrollTo({top:0,behavior:"smooth"});
+      
+      // Actualizar dashboard
+      updateDashboardStats();
+    } else {
+      A=false;
+      T("Usuario o contraseña incorrectos.","error");
+      iP.focus();
+      iP.select();
+    }
+  }
+  
+  /* evitar listeners duplicados si re-evalúa */
+  const bInC=bIn.cloneNode(true); bIn.parentNode.replaceChild(bInC,bIn);
+  const bOutC=bOut.cloneNode(true); bOut.parentNode.replaceChild(bOutC,bOut);
+  bInC.addEventListener("click",doLogin);
+  iU.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doLogin()}}); iP.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doLogin()}})
+  bOutC.addEventListener("click",()=>{showLogin();g("dashboard")});
+  showLogin(); try{iU.focus()}catch(_){}
+});})();
+
+/* ===== Actualizar estadísticas del dashboard ===== */
+function updateDashboardStats() {
+  const empleados = read().filter(e => (e.estatusLaboral || "ALTA") === "ALTA");
+  const aguinaldo = readAguinaldo();
+  const totalAguinaldo = Object.values(aguinaldo).reduce((sum, val) => sum + val, 0);
+  const semanaActual = getSemanaActual();
+  
+  // Calcular total de nómina actual
+  const nomina = readNomina();
+  const nominaSemanaActual = nomina[semanaActual] || [];
+  let totalNomina = 0;
+  
+  nominaSemanaActual.forEach(registro => {
+    const horasTrabajadas = registro.horasTrabajadas || 0;
+    const sueldoHora = registro.sueldoHora || 0;
+    const subtotal = horasTrabajadas * sueldoHora;
+    
+    const descuentos = (registro.infonavit ? registro.montoInfonavit : 0) + 
+                       (registro.transporte ? registro.montoTransporte : 0) + 
+                       (registro.otrosDescuentos || 0);
+    
+    const total = subtotal - descuentos + (registro.extras || 0);
+    totalNomina += total;
+  });
+  
+  // Actualizar contadores
+  $("#dashEmpleados").textContent = empleados.length;
+  $("#dashNomina").textContent = R(totalNomina);
+  $("#dashAguinaldo").textContent = R(totalAguinaldo);
+  $("#dashSemana").textContent = semanaActual;
+}
+
+/* ===== Router ===== */
+const bW=$("#badgeWhere"),PAGES={
+  dashboard:$("#page-dashboard"),
+  empleados:$("#page-empleados"),
+  aguinaldo:$("#page-aguinaldo"),
+  "aguinaldo-acumulado":$("#page-aguinaldo-acumulado"),
+  nomina:$("#page-nomina"),
+  pagos:$("#page-pagos"),
+  bonos:$("#page-bonos"),
+  reportes:$("#page-reportes"),
+  estadisticas:$("#page-estadisticas"),
+  configuracion:$("#page-configuracion")
+};
+function animIn(el){el.classList.remove("view-enter","view-enter-active");void el.offsetWidth;el.classList.add("view-enter");requestAnimationFrame(()=>el.classList.add("view-enter-active"))}
+function g(name){
+  if(!A){$("#view-app").style.display="none";$("#view-login").style.display="";return}
+  
+  // Actualizar menú activo
+  const menuItems = $$(".nav-link");
+  menuItems.forEach(item => {
+    if(item.getAttribute("data-route") === name) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
+  
+  // Verificar permisos
+  if(currentUser && currentUser.rol === "rh" && name === "configuracion") {
+    T("No tienes permisos para acceder a esta sección.", "warning");
+    return;
+  }
+  
+  Object.entries(PAGES).forEach(([k,el])=>el.style.display=k===name?"":"none");
+  bW.textContent=name.charAt(0).toUpperCase()+name.slice(1).replace("-", " ");
+  
+  // Inicializar la vista correspondiente
+  if(name === "nomina") initNomina();
+  if(name === "pagos") initPagos();
+  if(name === "aguinaldo") initAguinaldo();
+  if(name === "aguinaldo-acumulado") initAguinaldoAcumulado();
+  if(name === "bonos") initBonos();
+  if(name === "reportes") initReportes();
+  if(name === "estadisticas") initEstadisticas();
+  if(name === "configuracion") initConfiguracion();
+  
+  animIn(PAGES[name]);
+  window.scrollTo({top:0});
+}
+
+document.addEventListener("click",e=>{const b=e.target.closest("[data-route]");if(!b)return;g(b.getAttribute("data-route"))});
+
+/* ===== Empleados ===== */
+const TB=$("#tablaEmpleados tbody"),TOT=$("#totalEmpleados"),DL=$("#dlgEmpleado"),FM=$("#formEmpleado"),MT=$("#modalTitle"),BG=$("#btnGuardar"),fMaPe=$("#fechaIngresoMaPe"),fIMSS=$("#fechaIngresoIMSS"),gInf=$("#grupoMontoInfonavit"),mInf=$("#montoInfonavit"),gTra=$("#grupoMontoTransporte"),mTra=$("#montoTransporte"),qIn=$("#inputSearch"),PREVIEW=$("#preview"),PAREA=$("#printArea");
+function est(emp){
+  if(!emp.fechaIngresoIMSS) return {t:"SOLO ALTA MAPE",c:"chip-solo"};
+  const fimss=E(emp.fechaIngresoIMSS),tres=M(fimss,3),h=E(D());
+  return h>=tres?{t:"PLANTA",c:"chip-planta"}:{t:"PRUEBA",c:"chip-prueba"};
+}
+function san(emp){
+  emp.apPaterno&&(emp.apPaterno=emp.apPaterno.toUpperCase());
+  emp.apMaterno&&(emp.apMaterno=emp.apMaterno.toUpperCase());
+  emp.numEmpleado&&(emp.numEmpleado=String(emp.numEmpleado).replace(/\s+/g,""));
+  emp.estatusLaboral!=="BAJA"&&(emp.estatusLaboral="ALTA");
+  return emp;
+}
+function fdata(){
+  const d=read().map(e=>({estatusLaboral:"ALTA",...e}));
+  const q=(query||"").trim().toLowerCase(); if(!q) return d;
+  return d.filter(emp=>{
+    const n=`${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}`.toLowerCase();
+    const dep=(emp.departamento||emp.lineaDepto||"").toLowerCase(), puesto=(emp.puesto||"").toLowerCase();
+    const num=String(emp.numEmpleado).toLowerCase(), es=est(emp).t.toLowerCase(), lab=(emp.estatusLaboral||"ALTA").toLowerCase();
+    return (`${n} ${dep} ${puesto} ${num} ${es} ${lab}`).includes(q);
+  });
+}
+function render(){
+  const d=fdata(); TB.innerHTML="";
+  d.forEach(emp=>{
+    const eS=est(emp);
+    const lab=(emp.estatusLaboral||"ALTA")==="BAJA"?{t:"BAJA",c:"chip-baja"}:{t:"ALTA",c:"chip-alta"};
+    const tr=document.createElement("tr");
+    const usaT = (typeof emp.usaTransporte==="number" ? emp.usaTransporte>0 : !!emp.usaTransporte);
+    const monT = (typeof emp.montoTransporte==="number"?emp.montoTransporte: (typeof emp.usaTransporte==="number"?emp.usaTransporte:0));
+    tr.innerHTML=`
+      <td>${H(emp.numEmpleado)}</td>
+      <td>${H(emp.nombres)} ${H(emp.apPaterno)} ${H(emp.apMaterno)}</td>
+      <td>${H(emp.departamento || emp.lineaDepto||"")}</td>
+      <td>${H(emp.puesto||"")}</td>
+      <td>${emp.tieneInfonavit?`<span class="chip chip-yes">Sí</span> ${R(emp.montoInfonavit||0)}`:`<span class="chip chip-no">No</span>`}
+        <button class="btn small outline" data-action="toggle-infonavit" data-id="${H(emp.numEmpleado)}">Cambiar</button>
+      </td>
+      <td>${usaT?`<span class="chip chip-yes">Sí</span> ${R(monT||0)}`:`<span class="chip chip-no">No</span>`}
+        <button class="btn small outline" data-action="toggle-transporte" data-id="${H(emp.numEmpleado)}">Cambiar</button>
+      </td>
+      <td>${H(emp.fechaIngresoMaPe||"")}</td>
+      <td>${emp.fechaIngresoIMSS?H(emp.fechaIngresoIMSS):"-"}</td>
+      <td><span class="chip ${eS.c}">${eS.t}</span></td>
+      <td><span class="chip ${lab.c}">${lab.t}</span>
+        <button class="btn small outline" data-action="toggle-laboral" data-id="${H(emp.numEmpleado)}">Cambiar</button>
+      </td>
+      <td><button class="btn small" data-action="edit" data-id="${H(emp.numEmpleado)}">Editar</button></td>`;
+    TB.appendChild(tr);
+  });
+  TOT.textContent=read().filter(e=>(e.estatusLaboral||"ALTA")!=="BAJA").length;
+}
+function resetF(){
+  FM.reset(); editing=null; MT.textContent="Registrar empleado";
+  FM.querySelector('input[name="tieneInfonavit"][value="no"]').checked=!0;
+  FM.querySelector('input[name="usaTransporte"][value="no"]').checked=!0;
+  gInf.style.display="none"; mInf.required=!1; gTra.style.display="none"; mTra.required=!1;
+  const mx=D(); fMaPe.max=mx; fIMSS.max=mx;
+}
+function fillForm(emp){
+  resetF();
+  $("#nombres").value=emp.nombres||""; $("#apPaterno").value=emp.apPaterno||""; $("#apMaterno").value=emp.apMaterno||"";
+  $("#numEmpleado").value=emp.numEmpleado||"";
+  $("#sueldoHora").value=emp.sueldoHora||0; $("#sueldoHoraAguinaldo").value=emp.sueldoHoraAguinaldo||0;
+  $("#tipoEmpleado").value=emp.tipoEmpleado||""; 
+  $("#departamento").value=emp.departamento || emp.lineaDepto || ""; 
+  $("#puesto").value=emp.puesto||"";
+  fMaPe.value=emp.fechaIngresoMaPe||""; fIMSS.value=emp.fechaIngresoIMSS||"";
+  if(emp.tieneInfonavit){FM.querySelector('input[name="tieneInfonavit"][value="si"]').checked=!0; gInf.style.display=""; mInf.required=!0; mInf.value=emp.montoInfonavit||0}
+  const usaT = (typeof emp.usaTransporte==="number" ? emp.usaTransporte>0 : !!emp.usaTransporte);
+  if(usaT){FM.querySelector('input[name="usaTransporte"][value="si"]').checked=!0; gTra.style.display=""; mTra.required=!0; mTra.value=emp.montoTransporte||(typeof emp.usaTransporte==="number"?emp.usaTransporte:0)}
+}
+function openC(){resetF();DL.showModal()}
+function openE(emp){fillForm(emp);editing=emp.numEmpleado;MT.textContent="Editar empleado";DL.showModal()}
+
+FM.addEventListener("change",e=>{
+  if(e.target.name==="tieneInfonavit"){const si=e.target.value==="si"; gInf.style.display=si?"":"none"; mInf.required=si; si||(mInf.value="")}
+  if(e.target.name==="usaTransporte"){const si=e.target.value==="si"; gTra.style.display=si?"":"none"; mTra.required=si; si||(mTra.value="")}
+  
+  // Actualizar opciones de puestos según el tipo de empleado
+  if(e.target.id === "tipoEmpleado") {
+    const tipoValue = e.target.value;
+    const deptoSelect = $("#departamento");
+    if(tipoValue === "Administrativo") {
+      deptoSelect.value = "Administrativo";
+    }
+  }
+});
+$("#apPaterno").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
+$("#apMaterno").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
+$("#numEmpleado").addEventListener("input",e=>e.target.value=e.target.value.replace(/\s+/g,""));
+
+async function confirmRelease(title,text,confirmText,snap){
+  const wasOpen=DL.open; if(wasOpen) DL.close();
+  const r=await C(title,text,confirmText);
+  if(!r.isConfirmed&&wasOpen){ fillForm(snap); if(editing) MT.textContent="Editar empleado"; DL.showModal(); }
+  return r;
+}
+FM.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const fM=fMaPe.value,fI=fIMSS.value; if(F(fM)||F(fI)){T("No se permiten fechas futuras.","warning");return}
+  const f=new FormData(FM), ti=f.get("tieneInfonavit")==="si", ut=f.get("usaTransporte")==="si";
+  let emp=san({
+    nombres:(f.get("nombres")||"").trim(), apPaterno:(f.get("apPaterno")||"").trim(), apMaterno:(f.get("apMaterno")||"").trim(),
+    numEmpleado:(f.get("numEmpleado")||"").trim(),
+    sueldoHora:parseFloat(f.get("sueldoHora")||"0")||0, sueldoHoraAguinaldo:parseFloat(f.get("sueldoHoraAguinaldo")||"0")||0,
+    tieneInfonavit:ti, montoInfonavit:ti?(parseFloat(f.get("montoInfonavit")||"0")||0):0,
+    usaTransporte:ut, montoTransporte:ut?(parseFloat(f.get("montoTransporte")||"0")||0):0,
+    tipoEmpleado:f.get("tipoEmpleado"), 
+    departamento:f.get("departamento"), 
+    puesto:f.get("puesto"),
+    fechaIngresoMaPe:fM, fechaIngresoIMSS:fI||"", estatusLaboral:"ALTA"
+  });
+  if(!emp.nombres||!emp.apPaterno||!emp.apMaterno||!emp.numEmpleado){T("Completa nombres, apellidos y número de empleado.","warning");return}
+  const d=read();
+  if(editing===null && d.some(x=>x.numEmpleado===emp.numEmpleado)){T("El número de empleado ya existe.","error");return}
+  if(editing!==null && emp.numEmpleado!==editing && d.some(x=>x.numEmpleado===emp.numEmpleado)){T("El número de empleado ya existe.","error");return}
+  const act=editing===null?"Registrar":"Actualizar", r=await confirmRelease(`${act} empleado`,`${emp.nombres} ${emp.apPaterno} (${emp.numEmpleado})`,act,{...emp}); if(!r.isConfirmed)return;
+  BG.disabled=!0;
+  if(editing===null){emp.createdAt=new Date().toISOString(); d.push(emp)}
+  else{const i=d.findIndex(x=>x.numEmpleado===editing); if(i>=0) d[i]={...d[i],...emp,updatedAt:new Date().toISOString()}}
+  write(d); render(); BG.disabled=!1; T(editing===null?`Empleado ${emp.nombres} registrado.`:`Empleado ${emp.nombres} actualizado.`,"success");
+  
+  // Actualizar dashboard
+  updateDashboardStats();
+  DL.close();
+});
+
+TB.addEventListener("click",async e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const id=b.dataset.id, ac=b.dataset.action, d=read(), i=d.findIndex(x=>x.numEmpleado===id); if(i<0)return;
+  if(ac==="edit"){openE(d[i]);return}
+
+  if(ac==="toggle-infonavit"){
+    const nv=!d[i].tieneInfonavit, r=await C("Cambiar INFONAVIT",`¿Establecer INFONAVIT a ${nv?"Sí":"No"} para ${d[i].nombres}?`,"Confirmar"); if(!r.isConfirmed)return;
+    let m=d[i].montoInfonavit||0;
+    if(nv){
+      const r2=await Swal.fire({title:"Monto INFONAVIT",input:"number",inputLabel:"Ingresa el monto",inputAttributes:{min:0,step:0.01},inputValue:m>0?m:"",showCancelButton:!0});
+      if(r2.isDismissed)return; m=parseFloat(r2.value); if(!(m>0)){T("Monto inválido","warning");return}
+    } else m=0;
+    d[i].tieneInfonavit=nv; d[i].montoInfonavit=m; write(d); render(); T("INFONAVIT actualizado.","success");
+  }
+
+  if(ac==="toggle-transporte"){
+    const curAmt=d[i].montoTransporte||(typeof d[i].usaTransporte==="number"?d[i].usaTransporte:0);
+    const nv = !(typeof d[i].usaTransporte==="boolean" ? d[i].usaTransporte : curAmt>0);
+    const r=await C("Cambiar Transporte",`¿Establecer Transporte a ${nv?"Sí":"No"} para ${d[i].nombres}?`,"Confirmar"); if(!r.isConfirmed)return;
+    let m=curAmt||0;
+    if(nv){
+      const r2=await Swal.fire({title:"Monto de transporte",input:"number",inputLabel:"Ingresa el monto",inputAttributes:{min:0,step:0.01},inputValue:m>0?m:"",showCancelButton:!0});
+      if(r2.isDismissed)return; m=parseFloat(r2.value); if(!(m>0)){T("Monto inválido","warning");return}
+      d[i].usaTransporte=true; d[i].montoTransporte=m;
+    } else {
+      d[i].usaTransporte=false; d[i].montoTransporte=0;
+    }
+    write(d); render(); T("Transporte actualizado.","success");
+  }
+
+  if(ac==="toggle-laboral"){
+    const nv=(d[i].estatusLaboral||"ALTA")==="BAJA"?"ALTA":"BAJA";
+    const r=await C("Cambiar estatus laboral",`¿Marcar ${nv==="BAJA"?"BAJA":"ALTA"} a ${d[i].nombres}?`,"Confirmar"); if(!r.isConfirmed)return;
+    d[i].estatusLaboral=nv; write(d); render(); T("Estatus laboral actualizado.","success");
+    
+    // Actualizar dashboard
+    updateDashboardStats();
+  }
+});
+$("#btnNuevo").addEventListener("click",openC);
+$("#cerrarModal").addEventListener("click",()=>DL.close());
+$("#cancelarForm").addEventListener("click",()=>DL.close());
+$("#inputSearch").addEventListener("input",()=>{query=$("#inputSearch").value||"";render()});
+
+/* ===== Vista previa / PDF (Carta Horizontal via IFRAME) ===== */
+function buildPreview(tipo = "empleados"){
+  const titulo = {
+    "empleados": "Reporte de Empleados",
+    "nomina": "Reporte de Nómina",
+    "pagos": "Reporte de Pagos",
+    "aguinaldo": "Reporte de Aguinaldo",
+    "bonos": "Reporte de Bonos"
+  }[tipo] || "Reporte";
+  
+  $("#previewTitle").textContent = `Vista previa — ${titulo}`;
+  
+  if (tipo === "empleados") {
+    const data=fdata(); if(!data.length){T("No hay empleados para exportar.","info");return}
+    lastPreviewRows=data.length;
+    const chunk=(a,s)=>a.reduce((x,_,i)=>(i%s?x:[...x,a.slice(i,i+s)]),[]), pages=chunk(data,40);
+    const row=emp=>{
+      const eS=est(emp).t, lab=(emp.estatusLaboral||"ALTA");
+      const n=`${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}`.trim();
+      return `<tr>
+        <td class="c nw">${H(emp.numEmpleado)}</td>
+        <td class="wrapcell">${H(n)}</td>
+        <td class="wrapcell">${H(emp.departamento || emp.lineaDepto||"")}</td>
+        <td class="c nw">${H(emp.fechaIngresoMaPe||"")}</td>
+        <td class="c nw">${emp.fechaIngresoIMSS?H(emp.fechaIngresoIMSS):"-"}</td>
+        <td class="nw">${H(eS)}</td>
+        <td class="nw">${H(lab)}</td>
+      </tr>`;
+    };
+    const onlyDate=new Date().toLocaleDateString("es-MX");
+    const tables=pages.map((pg,ix)=>`<section style="break-inside:avoid;${ix>0?"page-break-before:always;":""}">
+      <h1>Nómina MaPe — Reporte de Empleados</h1>
+      <p class="pmuted">Generado: ${onlyDate} — Página ${ix+1} de ${pages.length}</p>
+      <table>
+        <colgroup>
+          <col style="width:7%"><col style="width:30%"><col style="width:23%"><col style="width:12%"><col style="width:12%"><col style="width:8%"><col style="width:8%">
+        </colgroup>
+        <thead><tr><th># Emp</th><th>Nombre</th><th>Dep./Línea</th><th>Ingreso MaPe</th><th>Ingreso IMSS</th><th>Estatus</th><th>Laboral</th></tr></thead>
+        <tbody>${pg.map(row).join("")}</tbody>
+      </table>
+    </section>`).join("");
+    PAREA.innerHTML=tables;
+  } else if (tipo === "nomina" || tipo === "pagos") {
+    // Implementar la generación del reporte de nómina o pagos
+    const semana = parseInt($("#reporteSemanas").value) || getSemanaActual();
+    const fechas = getFechasSemana(semana);
+    const nomina = readNomina();
+    const dataSemana = nomina[semana] || [];
+    
+    if (dataSemana.length === 0) {
+      T("No hay datos para esta semana", "info");
+      return;
+    }
+    
+    const empleados = read();
+    const rows = dataSemana.map(item => {
+      const emp = empleados.find(e => e.numEmpleado === item.numEmpleado) || {};
+      const nombre = emp.nombres ? `${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}` : "Empleado no encontrado";
+      const subtotal = item.horasTrabajadas * item.sueldoHora;
+      const descuentos = (item.infonavit ? item.montoInfonavit : 0) + 
+                        (item.transporte ? item.montoTransporte : 0) + 
+                        (item.otrosDescuentos || 0);
+      const total = subtotal - descuentos + (item.extras || 0);
+      
+      return `<tr>
+        <td class="c">${H(item.numEmpleado)}</td>
+        <td>${H(nombre)}</td>
+        <td>${H(emp.tipoEmpleado || "")}</td>
+        <td class="c">${item.horasTrabajadas}</td>
+        <td class="c">${R(subtotal)}</td>
+        <td class="c">${R(descuentos)}</td>
+        <td class="c">${R(total)}</td>
+      </tr>`;
+    }).join("");
+    
+    const onlyDate = new Date().toLocaleDateString("es-MX");
+    PAREA.innerHTML = `
+      <section>
+        <h1>Nómina MaPe — Reporte de Nómina</h1>
+        <p class="pmuted">Generado: ${onlyDate} — Semana ${semana}: ${fechas.inicio} - ${fechas.fin}</p>
+        <table>
+          <colgroup>
+            <col style="width:10%"><col style="width:30%"><col style="width:15%"><col style="width:10%">
+            <col style="width:12%"><col style="width:12%"><col style="width:12%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th># Emp</th><th>Nombre</th><th>Tipo</th><th>Horas</th>
+              <th>Subtotal</th><th>Descuentos</th><th>Total</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>
+    `;
+  } else if (tipo === "aguinaldo") {
+    // Implementar la generación del reporte de aguinaldo
+    const empleados = read().filter(e => (e.estatusLaboral || "ALTA") === "ALTA");
+    const aguinaldo = readAguinaldo();
+    
+    if (empleados.length === 0) {
+      T("No hay empleados activos", "info");
+      return;
+    }
+    
+    const rows = empleados.map(emp => {
+      const acumulado = aguinaldo[emp.numEmpleado] || 0;
+      return `<tr>
+        <td class="c">${H(emp.numEmpleado)}</td>
+        <td>${H(`${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}`)}</td>
+        <td>${H(emp.tipoEmpleado || "")}</td>
+        <td class="c">${R(emp.sueldoHoraAguinaldo || 0)}</td>
+        <td class="c">${R(acumulado)}</td>
+      </tr>`;
+    }).join("");
+    
+    const totalAcumulado = Object.values(aguinaldo).reduce((sum, val) => sum + val, 0);
+    const onlyDate = new Date().toLocaleDateString("es-MX");
+    
+    PAREA.innerHTML = `
+      <section>
+        <h1>Nómina MaPe — Reporte de Aguinaldo</h1>
+        <p class="pmuted">Generado: ${onlyDate}</p>
+        <p style="font-size:14px;font-weight:bold;margin:10px 0">Total Acumulado: ${R(totalAcumulado)}</p>
+        <table>
+          <colgroup>
+            <col style="width:10%"><col style="width:35%"><col style="width:15%"><col style="width:20%"><col style="width:20%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th># Emp</th><th>Nombre</th><th>Tipo</th><th>Sueldo/hr Aguinaldo</th><th>Acumulado</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>
+    `;
+  }
+}
+
+function doPrintFromIframe(){
+  const html=PAREA.innerHTML.trim(); if(!html){T("No hay vista previa para imprimir.","info");return}
+  const iframe=$("#printFrame"); const doc=iframe.contentDocument||iframe.contentWindow.document;
+  doc.open(); doc.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Reporte</title>
+  <style>
+    @page{ size: Letter landscape; margin: 8mm; }
+    body{ font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; }
+    table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+    th,td{ border-bottom:1px solid #e5e7eb; padding:4px 5px; font-size:9.2px; vertical-align:middle; line-height:1.22; }
+    th{ background:#f3f4f6; text-align:left; }
+    .c{text-align:center}.nw{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wrapcell{white-space:normal;word-break:break-word}
+    h1{ font-size:14px; margin:0 0 2px; } .pmuted{ color:#6b7280; font-size:10px; margin:0 0 6px; }
+  </style></head><body>${html}</body></html>`); doc.close();
+  iframe.onload=()=>{iframe.contentWindow.focus(); iframe.contentWindow.print();};
+}
+
+$("#btnPdf").addEventListener("click",()=>{buildPreview("empleados");PREVIEW.style.display="flex"});
+$("#btnClosePreview").addEventListener("click",()=>{PREVIEW.style.display="none";PAREA.innerHTML=""});
+$("#btnPrint").addEventListener("click",doPrintFromIframe);
+
+/* ===== Nómina ===== */
+let editingNomina = null;
+const DLN = $("#dlgNomina");
+const FMN = $("#formNomina");
+
+function initNomina() {
+  // Actualizar información de la semana actual
+  const semanaActual = getSemanaActual();
+  const fechasSemana = getFechasSemana(semanaActual);
+  $("#semanaInfo").textContent = fechasSemana.texto;
+  
+  // Verificar estado de la nómina
+  const nomina = readNomina();
+  const nominaSemanaActual = nomina[semanaActual] || [];
+  const cerrada = nominaSemanaActual.cerrada || false;
+  
+  if (cerrada) {
+    $("#btnCerrarNomina").style.display = "none";
+    $("#estadoNomina").textContent = "Cerrada";
+    
+    // Solo administradores pueden reabrir
+    if (currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia")) {
+      $("#btnReabrirNomina").style.display = "";
+    } else {
+      $("#btnReabrirNomina").style.display = "none";
+    }
+  } else {
+    $("#btnCerrarNomina").style.display = "";
+    $("#btnReabrirNomina").style.display = "none";
+    $("#estadoNomina").textContent = "Abierta";
+  }
+  
+  renderNomina();
+}
+
+function renderNomina() {
+  const tablaNomina = $("#tablaNomina tbody");
+  tablaNomina.innerHTML = "";
+  
+  const empleados = read().filter(e => (e.estatusLaboral || "ALTA") === "ALTA");
+  const filtro = $("#filtroEmpleados").value;
+  const busqueda = ($("#buscarNomina").value || "").toLowerCase();
+  
+  // Filtrar por tipo si es necesario
+  const empleadosFiltrados = empleados.filter(emp => {
+    if (filtro !== "todos" && emp.tipoEmpleado !== filtro) return false;
+    
+    // Filtrar por búsqueda
+    if (busqueda) {
+      const texto = `${emp.numEmpleado} ${emp.nombres} ${emp.apPaterno} ${emp.apMaterno} ${emp.departamento || emp.lineaDepto || ""}`.toLowerCase();
+      if (!texto.includes(busqueda)) return false;
+    }
+    
+    return true;
+  });
+  
+  // Ordenar por número de empleado
+  empleadosFiltrados.sort((a, b) => a.numEmpleado.localeCompare(b.numEmpleado));
+  
+  const semanaActual = getSemanaActual();
+  const nomina = readNomina();
+  const nominaSemanaActual = nomina[semanaActual] || [];
+  const cerrada = nominaSemanaActual.cerrada || false;
+  
+  // Crear filas para cada empleado
+  empleadosFiltrados.forEach(emp => {
+    const nominaEmpleado = nominaSemanaActual.find(n => n.numEmpleado === emp.numEmpleado) || {};
+    
+    const horasTrabajadas = nominaEmpleado.horasTrabajadas || 0;
+    const sueldoHora = emp.sueldoHora || 0;
+    const subtotal = horasTrabajadas * sueldoHora;
+    
+    const infonavit = nominaEmpleado.infonavit ? nominaEmpleado.montoInfonavit || 0 : 0;
+    const transporte = nominaEmpleado.transporte ? nominaEmpleado.montoTransporte || 0 : 0;
+    const otrosDescuentos = nominaEmpleado.otrosDescuentos || 0;
+    const extras = nominaEmpleado.extras || 0;
+    
+    const total = subtotal - infonavit - transporte - otrosDescuentos + extras;
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(emp.numEmpleado)}</td>
+      <td>${H(emp.nombres)} ${H(emp.apPaterno)} ${H(emp.apMaterno)}</td>
+      <td>${H(emp.tipoEmpleado || "")}</td>
+      <td>${horasTrabajadas}</td>
+      <td>${R(sueldoHora)}</td>
+      <td>${R(subtotal)}</td>
+      <td>${R(infonavit)}</td>
+      <td>${R(transporte)}</td>
+      <td>${R(otrosDescuentos)}</td>
+      <td>${R(extras)}</td>
+      <td>${R(total)}</td>
+      <td>
+        <button class="btn small ${cerrada ? 'outline' : ''}" data-action="edit-nomina" data-id="${emp.numEmpleado}" ${cerrada ? 'disabled' : ''}>
+          ${cerrada ? 'Ver' : 'Editar'}
+        </button>
+      </td>
+    `;
+    tablaNomina.appendChild(tr);
+  });
+}
+
+function openNominaDialog(numEmpleado) {
+  const empleados = read();
+  const emp = empleados.find(e => e.numEmpleado === numEmpleado);
+  
+  if (!emp) {
+    T("Empleado no encontrado", "error");
+    return;
+  }
+  
+  // Obtener datos de nómina si existen
+  const semanaActual = getSemanaActual();
+  const nomina = readNomina();
+  const nominaSemanaActual = nomina[semanaActual] || [];
+  const cerrada = nominaSemanaActual.cerrada || false;
+  const nominaEmpleado = nominaSemanaActual.find(n => n.numEmpleado === numEmpleado) || {};
+  
+  // Rellenar formulario
+  $("#nombreEmpleadoNomina").textContent = `${emp.nombres} ${emp.apPaterno} ${emp.apMaterno} (${emp.numEmpleado})`;
+  $("#semanaNomina").textContent = getFechasSemana(semanaActual).texto;
+  $("#horasTrabajadas").value = nominaEmpleado.horasTrabajadas || "";
+  $("#sueldoHoraNomina").textContent = R(emp.sueldoHora || 0);
+  
+  // Información de deducciones
+  $("#montoInfonavitNomina").textContent = emp.tieneInfonavit ? `(${R(emp.montoInfonavit || 0)})` : "";
+  $("#montoTransporteNomina").textContent = emp.usaTransporte ? `(${R(emp.montoTransporte || 0)})` : "";
+  $("#aplicarInfonavit").checked = nominaEmpleado.infonavit || false;
+  $("#aplicarTransporte").checked = nominaEmpleado.transporte || false;
+  
+  // Limpiar y volver a cargar deducciones
+  const listaDeduccionesNomina = $("#listaDeduccionesNomina");
+  listaDeduccionesNomina.innerHTML = "";
+  
+  if (nominaEmpleado.deducciones && nominaEmpleado.deducciones.length > 0) {
+    nominaEmpleado.deducciones.forEach((ded, index) => {
+      const div = document.createElement("div");
+      div.classList.add("deduccion-item");
+      div.style.display = "flex";
+      div.style.justifyContent = "space-between";
+      div.style.marginBottom = "5px";
+      div.style.padding = "5px";
+      div.style.border = "1px solid var(--border)";
+      div.style.borderRadius = "5px";
+      
+      div.innerHTML = `
+        <div>
+          <select class="tipo-deduccion form-select" ${cerrada ? 'disabled' : ''}>
+            ${TIPOS_DESCUENTO.map(tipo => `<option value="${tipo}" ${tipo === ded.tipo ? 'selected' : ''}>${tipo}</option>`).join('')}
+          </select>
+          ${ded.tipo === 'Otro' ? `<input type="text" class="desc-deduccion form-control mt-1" value="${ded.descripcion || ''}" placeholder="Descripción" ${cerrada ? 'disabled' : ''}>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <input type="number" class="monto-deduccion form-control" value="${ded.monto}" min="0" step="0.01" style="width:100px" ${cerrada ? 'disabled' : ''}>
+          ${!cerrada ? `<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-deduccion">×</button>` : ''}
+        </div>
+      `;
+      
+      if (!cerrada) {
+        div.querySelector(".btn-eliminar-deduccion").addEventListener("click", () => {
+          div.remove();
+        });
+      }
+      
+      listaDeduccionesNomina.appendChild(div);
+    });
+  }
+  
+  // Campo de extras (solo visible para admin y gerencia)
+  const campoExtras = $("#campoExtras");
+  if (currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia")) {
+    campoExtras.style.display = "";
+    $("#extrasNomina").value = nominaEmpleado.extras || 0;
+    $("#extrasNomina").disabled = cerrada;
+  } else {
+    campoExtras.style.display = "none";
+  }
+  
+  // Botón de guardar
+  $("#btnGuardarNomina").disabled = cerrada;
+  
+  // Establecer el empleado que se está editando
+  editingNomina = numEmpleado;
+  
+  DLN.showModal();
+}
+
+$("#btnAgregarDeduccion").addEventListener("click", () => {
+  const listaDeduccionesNomina = $("#listaDeduccionesNomina");
+  const div = document.createElement("div");
+  div.classList.add("deduccion-item");
+  div.style.display = "flex";
+  div.style.justifyContent = "space-between";
+  div.style.marginBottom = "5px";
+  div.style.padding = "5px";
+  div.style.border = "1px solid var(--border)";
+  div.style.borderRadius = "5px";
+  
+  div.innerHTML = `
+    <div>
+      <select class="tipo-deduccion form-select">
+        ${TIPOS_DESCUENTO.map(tipo => `<option value="${tipo}">${tipo}</option>`).join('')}
+      </select>
+      <input type="text" class="desc-deduccion form-control mt-1" placeholder="Descripción" style="display:none">
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <input type="number" class="monto-deduccion form-control" value="0" min="0" step="0.01" style="width:100px">
+      <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-deduccion">×</button>
+    </div>
+  `;
+  
+  div.querySelector(".tipo-deduccion").addEventListener("change", (e) => {
+    const descInput = div.querySelector(".desc-deduccion");
+    if (e.target.value === "Otro") {
+      descInput.style.display = "";
+    } else {
+      descInput.style.display = "none";
+    }
+  });
+  
+  div.querySelector(".btn-eliminar-deduccion").addEventListener("click", () => {
+    div.remove();
+  });
+  
+  listaDeduccionesNomina.appendChild(div);
+});
+
+FMN.addEventListener("submit", (e) => {
+  e.preventDefault();
+  
+  if (editingNomina === null) {
+    T("No se ha seleccionado un empleado", "error");
+    return;
+  }
+  
+  const horasTrabajadas = parseFloat($("#horasTrabajadas").value);
+  if (isNaN(horasTrabajadas) || horasTrabajadas < 0) {
+    T("Ingresa un número válido de horas trabajadas", "warning");
+    return;
+  }
+  
+  // Obtener empleado
+  const empleados = read();
+  const emp = empleados.find(e => e.numEmpleado === editingNomina);
+  
+  if (!emp) {
+    T("Empleado no encontrado", "error");
+    return;
+  }
+  
+  // Obtener deducciones
+  const deducciones = [];
+  const itemsDeducciones = $$("#listaDeduccionesNomina .deduccion-item");
+  
+  itemsDeducciones.forEach(item => {
+    const tipo = item.querySelector(".tipo-deduccion").value;
+    const monto = parseFloat(item.querySelector(".monto-deduccion").value);
+    
+    if (!isNaN(monto) && monto > 0) {
+      const deduccion = { tipo, monto };
+      
+      if (tipo === "Otro") {
+        deduccion.descripcion = item.querySelector(".desc-deduccion").value || "Sin descripción";
+      }
+      
+      deducciones.push(deduccion);
+    }
+  });
+  
+  // Calcular total de deducciones
+  const otrosDescuentos = deducciones.reduce((sum, ded) => sum + ded.monto, 0);
+  
+  // Aplicar INFONAVIT y Transporte
+  const aplicarInfonavit = $("#aplicarInfonavit").checked;
+  const aplicarTransporte = $("#aplicarTransporte").checked;
+  
+  // Extras (si aplica)
+  let extras = 0;
+  if (currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia")) {
+    extras = parseFloat($("#extrasNomina").value) || 0;
+  }
+  
+  // Guardar en la nómina
+  const semanaActual = getSemanaActual();
+  const nomina = readNomina();
+  
+  if (!nomina[semanaActual]) {
+    nomina[semanaActual] = [];
+  }
+  
+  // Buscar si ya existe entrada para este empleado
+  const index = nomina[semanaActual].findIndex(n => n.numEmpleado === editingNomina);
+  
+  const nominaEmpleado = {
+    numEmpleado: editingNomina,
+    horasTrabajadas,
+    sueldoHora: emp.sueldoHora,
+    infonavit: aplicarInfonavit,
+    montoInfonavit: aplicarInfonavit ? (emp.montoInfonavit || 0) : 0,
+    transporte: aplicarTransporte,
+    montoTransporte: aplicarTransporte ? (emp.montoTransporte || 0) : 0,
+    deducciones,
+    otrosDescuentos,
+    extras,
+    fechaRegistro: new Date().toISOString()
+  };
+  
+  if (index >= 0) {
+    nomina[semanaActual][index] = nominaEmpleado;
+  } else {
+    nomina[semanaActual].push(nominaEmpleado);
+  }
+  
+  // Actualizar aguinaldo
+  actualizarAguinaldo(editingNomina, horasTrabajadas, emp.sueldoHoraAguinaldo || 0);
+  
+  writeNomina(nomina);
+  DLN.close();
+  renderNomina();
+  updateDashboardStats();
+  T("Nómina guardada correctamente", "success");
+});
+
+$("#cerrarModalNomina").addEventListener("click", () => DLN.close());
+$("#cancelarFormNomina").addEventListener("click", () => DLN.close());
+
+function actualizarAguinaldo(numEmpleado, horasTrabajadas, sueldoHoraAguinaldo) {
+  const aguinaldo = readAguinaldo();
+  const montoAguinaldo = calcularAguinaldo(horasTrabajadas, sueldoHoraAguinaldo);
+  
+  if (!aguinaldo[numEmpleado]) {
+    aguinaldo[numEmpleado] = 0;
+  }
+  
+  aguinaldo[numEmpleado] += montoAguinaldo;
+  writeAguinaldo(aguinaldo);
+}
+
+$("#tablaNomina").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action='edit-nomina']");
+  if (btn) {
+    const numEmpleado = btn.dataset.id;
+    openNominaDialog(numEmpleado);
+  }
+});
+
+$("#filtroEmpleados").addEventListener("change", renderNomina);
+$("#buscarNomina").addEventListener("input", renderNomina);
+
+$("#btnCerrarNomina").addEventListener("click", async () => {
+  const semanaActual = getSemanaActual();
+  const nomina = readNomina();
+  const nominaSemanaActual = nomina[semanaActual] || [];
+  
+  // Verificar que haya al menos un registro
+  if (nominaSemanaActual.length === 0) {
+    T("No hay registros en la nómina actual", "warning");
+    return;
+  }
+  
+  // Verificar extras (solo gerencia y admin pueden cerrar sin extras)
+  const empleadosConExtras = nominaSemanaActual.filter(n => (n.extras || 0) > 0);
+  if (empleadosConExtras.length === 0 && !(currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia"))) {
+    T("La nómina no puede cerrarse hasta que se asignen extras. Contacta a un administrador o gerente.", "warning");
+    return;
+  }
+  
+  // Confirmar cierre
+  const result = await C(
+    "Cerrar Nómina", 
+    `¿Estás seguro de cerrar la nómina de la semana ${semanaActual}? Una vez cerrada, no se podrán hacer modificaciones a menos que un administrador la reabra.`,
+    "Sí, cerrar nómina"
+  );
+  
+  if (!result.isConfirmed) return;
+  
+  // Marcar como cerrada
+  nomina[semanaActual].cerrada = true;
+  nomina[semanaActual].fechaCierre = new Date().toISOString();
+  nomina[semanaActual].creadoPor = currentUser ? currentUser.nombre : "Usuario";
+  
+  // Crear un registro en pagos
+  const pagos = readPagos();
+  pagos.push({
+    semana: semanaActual,
+    fechas: getFechasSemana(semanaActual),
+    registros: nominaSemanaActual,
+    fechaCierre: new Date().toISOString(),
+    creadoPor: currentUser ? currentUser.nombre : "Usuario"
+  });
+  
+  writeNomina(nomina);
+  writePagos(pagos);
+  
+  T("Nómina cerrada correctamente", "success");
+  initNomina();
+});
+
+$("#btnReabrirNomina").addEventListener("click", async () => {
+  // Verificar permisos
+  if (!(currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia"))) {
+    T("No tienes permisos para reabrir la nómina", "error");
+    return;
+  }
+  
+  const result = await C(
+    "Reabrir Nómina", 
+    "¿Estás seguro de reabrir la nómina? Esta acción se registrará en el sistema.",
+    "Sí, reabrir"
+  );
+  
+  if (!result.isConfirmed) return;
+  
+  const semanaActual = getSemanaActual();
+  const nomina = readNomina();
+  
+  if (nomina[semanaActual]) {
+    nomina[semanaActual].cerrada = false;
+    nomina[semanaActual].fechaReapertura = new Date().toISOString();
+    nomina[semanaActual].reabiertoPor = currentUser ? currentUser.nombre : "Administrador";
+    
+    writeNomina(nomina);
+    T("Nómina reabierta correctamente", "success");
+    initNomina();
+  }
+});
+
+/* ===== Pagos ===== */
+function initPagos() {
+  // Actualizar información de la semana actual
+  const semanaActual = getSemanaActual();
+  $("#semanaPagosInfo").textContent = `Semana Actual: ${semanaActual}`;
+  
+  // Cargar las semanas disponibles
+  const pagos = readPagos();
+  const selectSemana = $("#selectSemana");
+  selectSemana.innerHTML = '<option value="">Seleccionar semana...</option>';
+  
+  pagos.forEach(pago => {
+    const option = document.createElement("option");
+    option.value = pago.semana;
+    option.textContent = `Semana ${pago.semana}: ${pago.fechas.inicio} - ${pago.fechas.fin}`;
+    selectSemana.appendChild(option);
+  });
+  
+  renderPagos();
+}
+
+function renderPagos() {
+  const tablaPagos = $("#tablaPagos tbody");
+  tablaPagos.innerHTML = "";
+  
+  const semanaSeleccionada = $("#selectSemana").value;
+  if (!semanaSeleccionada) {
+    return; // No hay semana seleccionada
+  }
+  
+  const pagos = readPagos();
+  const pago = pagos.find(p => p.semana.toString() === semanaSeleccionada);
+  
+  if (!pago) {
+    return; // No se encontró el pago
+  }
+  
+  const empleados = read();
+  const filtro = $("#filtroTipoPagos").value;
+  const busqueda = ($("#buscarPagos").value || "").toLowerCase();
+  
+  // Mostrar cada registro
+  pago.registros.forEach(registro => {
+    const emp = empleados.find(e => e.numEmpleado === registro.numEmpleado) || {};
+    
+    // Filtrar por tipo si es necesario
+    if (filtro !== "todos" && emp.tipoEmpleado !== filtro) return;
+    
+    // Filtrar por búsqueda
+    if (busqueda) {
+      const texto = `${registro.numEmpleado} ${emp.nombres || ""} ${emp.apPaterno || ""} ${emp.apMaterno || ""} ${emp.departamento || emp.lineaDepto || ""}`.toLowerCase();
+      if (!texto.includes(busqueda)) return;
+    }
+    
+    const nombre = emp.nombres ? `${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}` : "Empleado no encontrado";
+    
+    const horasTrabajadas = registro.horasTrabajadas || 0;
+    const sueldoHora = registro.sueldoHora || 0;
+    const subtotal = horasTrabajadas * sueldoHora;
+    
+    const descuentos = (registro.infonavit ? registro.montoInfonavit : 0) + 
+                       (registro.transporte ? registro.montoTransporte : 0) + 
+                       (registro.otrosDescuentos || 0);
+    
+    const total = subtotal - descuentos + (registro.extras || 0);
+    
+    // Calcular aguinaldo
+    const aguinaldo = calcularAguinaldo(horasTrabajadas, emp.sueldoHoraAguinaldo || 0);
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(registro.numEmpleado)}</td>
+      <td>${H(nombre)}</td>
+      <td>${H(emp.tipoEmpleado || "")}</td>
+      <td>${horasTrabajadas}</td>
+      <td>${R(sueldoHora)}</td>
+      <td>${R(subtotal)}</td>
+      <td>${R(descuentos)}</td>
+      <td>${R(total)}</td>
+      <td>${R(aguinaldo)}</td>
+      <td>
+        <button class="btn small" data-action="ver-detalle" data-id="${registro.numEmpleado}">
+          Detalle
+        </button>
+      </td>
+    `;
+    tablaPagos.appendChild(tr);
+  });
+}
+
+$("#selectSemana").addEventListener("change", renderPagos);
+$("#filtroTipoPagos").addEventListener("change", renderPagos);
+$("#buscarPagos").addEventListener("input", renderPagos);
+
+$("#btnImprimirPagos").addEventListener("click", () => {
+  const semanaSeleccionada = $("#selectSemana").value;
+  if (!semanaSeleccionada) {
+    T("Selecciona una semana primero", "warning");
+    return;
+  }
+  
+  buildPreview("pagos");
+  PREVIEW.style.display = "flex";
+});
+
+/* ===== Aguinaldo ===== */
+function initAguinaldo() {
+  renderAguinaldo();
+}
+
+function renderAguinaldo() {
+  const tablaAguinaldo = $("#tablaAguinaldo tbody");
+  tablaAguinaldo.innerHTML = "";
+  
+  const empleados = read().filter(e => (e.estatusLaboral || "ALTA") === "ALTA");
+  const aguinaldo = readAguinaldo();
+  
+  // Calcular total acumulado
+  let totalAcumulado = 0;
+  
+  empleados.forEach(emp => {
+    const horasTotales = calcularHorasTotales(emp.numEmpleado);
+    const acumulado = aguinaldo[emp.numEmpleado] || 0;
+    totalAcumulado += acumulado;
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(emp.numEmpleado)}</td>
+      <td>${H(emp.nombres)} ${H(emp.apPaterno)} ${H(emp.apMaterno)}</td>
+      <td>${H(emp.tipoEmpleado || "")}</td>
+      <td>${R(emp.sueldoHoraAguinaldo || 0)}</td>
+      <td>${horasTotales}</td>
+      <td>${R(acumulado)}</td>
+    `;
+    tablaAguinaldo.appendChild(tr);
+  });
+  
+  $("#totalAguinaldo").textContent = R(totalAcumulado);
+}
+
+function calcularHorasTotales(numEmpleado) {
+  const nomina = readNomina();
+  let totalHoras = 0;
+  
+  // Sumar horas de todas las semanas
+  Object.values(nomina).forEach(semanaNomina => {
+    if (Array.isArray(semanaNomina)) {
+      const registro = semanaNomina.find(n => n.numEmpleado === numEmpleado);
+      if (registro) {
+        totalHoras += registro.horasTrabajadas || 0;
+      }
+    }
+  });
+  
+  return totalHoras;
+}
+
+/* ===== Aguinaldo Acumulado ===== */
+function initAguinaldoAcumulado() {
+  const tablaAguinaldoAcumulado = $("#tablaAguinaldoAcumulado tbody");
+  tablaAguinaldoAcumulado.innerHTML = "";
+  
+  const empleados = read(); // Incluir todos para mostrar también los de baja
+  const aguinaldo = readAguinaldo();
+  
+  // Calcular total acumulado
+  let totalAcumulado = 0;
+  
+  empleados.forEach(emp => {
+    const acumulado = aguinaldo[emp.numEmpleado] || 0;
+    
+    // Si está de baja, no sumar al total
+    if ((emp.estatusLaboral || "ALTA") === "ALTA") {
+      totalAcumulado += acumulado;
+    }
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(emp.numEmpleado)}</td>
+      <td>${H(emp.nombres)} ${H(emp.apPaterno)} ${H(emp.apMaterno)}</td>
+      <td>${H(emp.tipoEmpleado || "")}</td>
+      <td>${H(emp.departamento || emp.lineaDepto || "")}</td>
+      <td>${R(acumulado)}</td>
+      <td><span class="chip ${(emp.estatusLaboral || "ALTA") === "ALTA" ? "chip-alta" : "chip-baja"}">${(emp.estatusLaboral || "ALTA")}</span></td>
+    `;
+    tablaAguinaldoAcumulado.appendChild(tr);
+  });
+  
+  $("#totalAguinaldoAcumulado").textContent = `Total Aguinaldo Acumulado: ${R(totalAcumulado)}`;
+}
+
+/* ===== Bonos ===== */
+let editingBono = null;
+const DLB = $("#dlgBono");
+const FMB = $("#formBono");
+
+function initBonos() {
+  // Actualizar información de la semana actual
+  const semanaActual = getSemanaActual();
+  const fechasSemana = getFechasSemana(semanaActual);
+  $("#semanaActualBono").textContent = fechasSemana.texto;
+  
+  // Cargar bonos existentes
+  renderBonos();
+  renderDistribucionBonos();
+}
+
+function renderBonos() {
+  const tablaBonos = $("#tablaBonos tbody");
+  tablaBonos.innerHTML = "";
+  
+  const bonos = readBonos();
+  const semanaSeleccionada = $("#semanaBonoSelect").value || getSemanaActual().toString();
+  
+  const bonosFiltrados = bonos.filter(b => b.semana.toString() === semanaSeleccionada);
+  
+  bonosFiltrados.forEach(bono => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(bono.concepto)}</td>
+      <td>${R(bono.monto)}</td>
+      <td>Semana ${bono.semana}</td>
+      <td>${new Date(bono.fecha).toLocaleDateString()}</td>
+      <td>
+        <button class="btn small" data-action="edit-bono" data-id="${bono.id}">Editar</button>
+        <button class="btn small outline" data-action="delete-bono" data-id="${bono.id}">Eliminar</button>
+      </td>
+    `;
+    tablaBonos.appendChild(tr);
+  });
+}
+
+function renderDistribucionBonos() {
+  const tablaDistribucion = $("#tablaDistribucionBonos tbody");
+  tablaDistribucion.innerHTML = "";
+  
+  const bonos = readBonos();
+  const semanaActual = getSemanaActual();
+  const semanaSeleccionada = $("#semanaBonoSelect").value || semanaActual.toString();
+  
+  const bonosFiltrados = bonos.filter(b => b.semana.toString() === semanaSeleccionada);
+  const totalBonos = bonosFiltrados.reduce((sum, b) => sum + b.monto, 0);
+  
+  // Si no hay bonos, no mostrar distribución
+  if (totalBonos === 0) return;
+  
+  // Obtener empleados activos
+  const empleados = read().filter(e => (e.estatusLaboral || "ALTA") === "ALTA");
+  
+  // Agrupar por departamento
+  const departamentos = {};
+  Object.keys(PORCENTAJES_BONOS).forEach(depto => {
+    departamentos[depto] = {
+      empleados: empleados.filter(e => (e.departamento || e.lineaDepto) === depto),
+      porcentaje: PORCENTAJES_BONOS[depto]
+    };
+  });
+  
+  // Calcular horas trabajadas por departamento
+  const nomina = readNomina();
+  const nominaSemana = nomina[semanaSeleccionada] || [];
+  
+  Object.keys(departamentos).forEach(depto => {
+    const empleadosDepto = departamentos[depto].empleados;
+    let totalHoras = 0;
+    let totalBonoDepto = 0;
+    
+    // Sumar horas de los empleados del departamento
+    empleadosDepto.forEach(emp => {
+      const nominaEmp = nominaSemana.find(n => n.numEmpleado === emp.numEmpleado);
+      if (nominaEmp) {
+        totalHoras += nominaEmp.horasTrabajadas || 0;
+      }
+    });
+    
+    // Calcular total de bono para el departamento
+    totalBonoDepto = (totalBonos * departamentos[depto].porcentaje / 100);
+    
+    // Calcular bono por hora
+    const bonoPorHora = totalHoras > 0 ? totalBonoDepto / totalHoras : 0;
+    
+    // Crear fila
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(depto)}</td>
+      <td>${empleadosDepto.length}</td>
+      <td>${bonoPorHora.toFixed(2)}</td>
+      <td>${R(totalBonoDepto)}</td>
+    `;
+    tablaDistribucion.appendChild(tr);
+  });
+  
+  // Agregar fila para el Gerente de Producción
+  const gerenteProduccion = empleados.find(e => e.puesto === "GERENTE DE PRODUCCION");
+  if (gerenteProduccion) {
+    // Calcular horas del gerente
+    const nominaGerente = nominaSemana.find(n => n.numEmpleado === gerenteProduccion.numEmpleado);
+    const horasGerente = nominaGerente ? nominaGerente.horasTrabajadas || 0 : 0;
+    
+    // Bono proporcional de todos los departamentos - 2000
+    const bonoGerente = (totalBonos * 1.5) - 2000;
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>Gerente de Producción</td>
+      <td>1</td>
+      <td>${horasGerente > 0 ? (bonoGerente / horasGerente).toFixed(2) : 0}</td>
+      <td>${R(Math.max(0, bonoGerente))}</td>
+    `;
+    tablaDistribucion.appendChild(tr);
+  }
+  
+  // Agregar fila para Líderes de Área
+  const lideresArea = empleados.filter(e => e.puesto === "LIDER DE AREA");
+  if (lideresArea.length > 0) {
+    let totalBonoLideres = 0;
+    let totalHorasLideres = 0;
+    
+    lideresArea.forEach(lider => {
+      const nominaLider = nominaSemana.find(n => n.numEmpleado === lider.numEmpleado);
+      if (nominaLider) {
+        const horasLider = nominaLider.horasTrabajadas || 0;
+        totalHorasLideres += horasLider;
+        
+        // Buscar a qué departamento pertenece el líder
+        const deptoLider = lider.departamento || lider.lineaDepto;
+        if (deptoLider && PORCENTAJES_BONOS[deptoLider]) {
+          // Calcular bono del departamento
+          const bonoDepto = totalBonos * PORCENTAJES_BONOS[deptoLider] / 100;
+          
+          // El líder recibe 50% más que los empleados regulares del departamento
+          const empleadosDepto = departamentos[deptoLider].empleados;
+          const totalHorasDepto = empleadosDepto.reduce((sum, e) => {
+            const nominaE = nominaSemana.find(n => n.numEmpleado === e.numEmpleado);
+            return sum + (nominaE ? nominaE.horasTrabajadas || 0 : 0);
+          }, 0);
+          
+          if (totalHorasDepto > 0) {
+            const bonoPorHora = bonoDepto / totalHorasDepto;
+            const bonoLider = horasLider * bonoPorHora * 1.5; // 50% más
+            totalBonoLideres += bonoLider;
+          }
+        }
+      }
+    });
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>Líderes de Área</td>
+      <td>${lideresArea.length}</td>
+      <td>${totalHorasLideres > 0 ? (totalBonoLideres / totalHorasLideres).toFixed(2) : 0}</td>
+      <td>${R(totalBonoLideres)}</td>
+    `;
+    tablaDistribucion.appendChild(tr);
+  }
+}
+
+$("#btnAgregarBono").addEventListener("click", () => {
+  editingBono = null;
+  $("#conceptoBono").value = "";
+  $("#montoBono").value = "";
+  
+  const semanaActual = getSemanaActual();
+  const fechasSemana = getFechasSemana(semanaActual);
+  $("#semanaActualBono").textContent = fechasSemana.texto;
+  
+  DLB.showModal();
+});
+
+FMB.addEventListener("submit", (e) => {
+  e.preventDefault();
+  
+  const concepto = $("#conceptoBono").value.trim();
+  const monto = parseFloat($("#montoBono").value);
+  
+  if (!concepto) {
+    T("Ingresa un concepto para el bono", "warning");
+    return;
+  }
+  
+  if (isNaN(monto) || monto <= 0) {
+    T("Ingresa un monto válido", "warning");
+    return;
+  }
+  
+  const semanaActual = getSemanaActual();
+  const bonos = readBonos();
+  
+  if (editingBono) {
+    // Actualizar bono existente
+    const index = bonos.findIndex(b => b.id === editingBono);
+    if (index >= 0) {
+      bonos[index].concepto = concepto;
+      bonos[index].monto = monto;
+      bonos[index].actualizado = new Date().toISOString();
+    }
+  } else {
+    // Nuevo bono
+    bonos.push({
+      id: generateId(),
+      concepto,
+      monto,
+      semana: semanaActual,
+      fecha: new Date().toISOString(),
+      creadoPor: currentUser ? currentUser.nombre : "Usuario"
+    });
+  }
+  
+  writeBonos(bonos);
+  DLB.close();
+  renderBonos();
+  renderDistribucionBonos();
+  updateDashboardStats();
+  T(editingBono ? "Bono actualizado correctamente" : "Bono registrado correctamente", "success");
+});
+
+$("#cerrarModalBono").addEventListener("click", () => DLB.close());
+$("#cancelarFormBono").addEventListener("click", () => DLB.close());
+
+$("#tablaBonos").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  const bonos = readBonos();
+  const bono = bonos.find(b => b.id === id);
+  
+  if (!bono) return;
+  
+  if (action === "edit-bono") {
+    editingBono = id;
+    $("#conceptoBono").value = bono.concepto;
+    $("#montoBono").value = bono.monto;
+    
+    const semanaActual = getSemanaActual();
+    const fechasSemana = getFechasSemana(semanaActual);
+    $("#semanaActualBono").textContent = fechasSemana.texto;
+    
+    DLB.showModal();
+  } else if (action === "delete-bono") {
+    C("Eliminar Bono", `¿Estás seguro de eliminar el bono "${bono.concepto}"?`, "Sí, eliminar").then(result => {
+      if (result.isConfirmed) {
+        const index = bonos.findIndex(b => b.id === id);
+        if (index >= 0) {
+          bonos.splice(index, 1);
+          writeBonos(bonos);
+          renderBonos();
+          renderDistribucionBonos();
+          updateDashboardStats();
+          T("Bono eliminado correctamente", "success");
+        }
+      }
+    });
+  }
+});
+
+$("#semanaBonoSelect").addEventListener("change", () => {
+  renderBonos();
+  renderDistribucionBonos();
+});
+
+/* ===== Reportes ===== */
+function initReportes() {
+  // Actualizar totales
+  actualizarResumenAguinaldo();
+  
+  // Cargar historial de nómina
+  const selectSemanas = $("#reporteSemanas");
+  selectSemanas.innerHTML = '<option value="">Seleccionar semana...</option>';
+  
+  const pagos = readPagos();
+  pagos.forEach(pago => {
+    const option = document.createElement("option");
+    option.value = pago.semana;
+    option.textContent = `Semana ${pago.semana}: ${pago.fechas.inicio} - ${pago.fechas.fin}`;
+    selectSemanas.appendChild(option);
+  });
+}
+
+function actualizarResumenAguinaldo() {
+  const empleados = read();
+  const aguinaldo = readAguinaldo();
+  
+  // Agrupar por tipo
+  const resumen = {
+    Operativo: { cantidad: 0, monto: 0 },
+    Administrativo: { cantidad: 0, monto: 0 }
+  };
+  
+  // Solo contar activos
+  empleados.filter(e => (e.estatusLaboral || "ALTA") === "ALTA").forEach(emp => {
+    const tipo = emp.tipoEmpleado || "Operativo";
+    const monto = aguinaldo[emp.numEmpleado] || 0;
+    
+    resumen[tipo].cantidad++;
+    resumen[tipo].monto += monto;
+  });
+  
+  // Actualizar tabla
+  const tbody = $("#tablaResumenAguinaldo");
+  tbody.innerHTML = "";
+  
+  Object.entries(resumen).forEach(([tipo, datos]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${tipo}</td>
+      <td>${datos.cantidad}</td>
+      <td>${R(datos.monto)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  // Total
+  const totalAguinaldo = Object.values(resumen).reduce((sum, datos) => sum + datos.monto, 0);
+  $("#reporteAguinaldoTotal").textContent = R(totalAguinaldo);
+}
+
+$("#reporteSemanas").addEventListener("change", () => {
+  const semana = $("#reporteSemanas").value;
+  if (!semana) {
+    $("#tablaReporteNomina tbody").innerHTML = "";
+    return;
+  }
+  
+  const pagos = readPagos();
+  const pago = pagos.find(p => p.semana.toString() === semana);
+  
+  if (!pago) return;
+  
+  const empleados = read();
+  const tbody = $("#tablaReporteNomina tbody");
+  tbody.innerHTML = "";
+  
+  pago.registros.forEach(registro => {
+    const emp = empleados.find(e => e.numEmpleado === registro.numEmpleado) || {};
+    const nombre = emp.nombres ? `${emp.nombres} ${emp.apPaterno} ${emp.apMaterno}` : "Empleado no encontrado";
+    
+    const horasTrabajadas = registro.horasTrabajadas || 0;
+    const sueldoHora = registro.sueldoHora || 0;
+    const subtotal = horasTrabajadas * sueldoHora;
+    
+    const descuentos = (registro.infonavit ? registro.montoInfonavit : 0) + 
+                       (registro.transporte ? registro.montoTransporte : 0) + 
+                       (registro.otrosDescuentos || 0);
+    
+    const total = subtotal - descuentos + (registro.extras || 0);
+    
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(registro.numEmpleado)}</td>
+      <td>${H(nombre)}</td>
+      <td>${H(emp.tipoEmpleado || "")}</td>
+      <td>${horasTrabajadas}</td>
+      <td>${R(subtotal)}</td>
+      <td>${R(descuentos)}</td>
+      <td>${R(total)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+});
+
+$("#btnReporteAguinaldo").addEventListener("click", () => {
+  buildPreview("aguinaldo");
+  PREVIEW.style.display = "flex";
+});
+
+$("#btnReporteNomina").addEventListener("click", () => {
+  const semana = $("#reporteSemanas").value;
+  if (!semana) {
+    T("Selecciona una semana primero", "warning");
+    return;
+  }
+  
+  buildPreview("nomina");
+  PREVIEW.style.display = "flex";
+});
+
+/* ===== Estadísticas ===== */
+let chartNomina, chartDistribucion, chartTendencia;
+
+function initEstadisticas() {
+  actualizarEstadisticas();
+  
+  // Listeners para filtros
+  $("#periodoEstadisticas").addEventListener("change", actualizarEstadisticas);
+  $("#tipoEstadisticas").addEventListener("change", actualizarEstadisticas);
+}
+
+function actualizarEstadisticas() {
+  const periodo = $("#periodoEstadisticas").value;
+  const tipo = $("#tipoEstadisticas").value;
+  
+  // Recolectar datos según filtros
+  const datos = obtenerDatosEstadisticas(periodo, tipo);
+  
+  // Actualizar tarjetas estadísticas
+  $("#statTotalNomina").textContent = R(datos.total);
+  $("#statPromedio").textContent = R(datos.promedio);
+  $("#statHoras").textContent = datos.horas.toLocaleString();
+  $("#statBonos").textContent = R(datos.bonos);
+  
+  // Actualizar gráficos
+  actualizarGraficoNomina(datos);
+  actualizarGraficoDistribucion(datos);
+  actualizarGraficoTendencia(datos);
+}
+
+function obtenerDatosEstadisticas(periodo, tipo) {
+  const empleados = read();
+  const nomina = readNomina();
+  const pagos = readPagos();
+  const bonos = readBonos();
+  
+  let filtro;
+  const ahora = new Date();
+  
+  if (periodo === "semanal") {
+    const semanaActual = getSemanaActual();
+    filtro = { semanaInicio: semanaActual - 10, semanaFin: semanaActual };
+  } else if (periodo === "mensual") {
+    const mesActual = ahora.getMonth();
+    const anioActual = ahora.getFullYear();
+    filtro = { mes: mesActual, anio: anioActual };
+  } else { // anual
+    const anioActual = ahora.getFullYear();
+    filtro = { anio: anioActual };
+  }
+  
+  // Filtrar pagos según el período
+  const pagosFiltrados = pagos.filter(pago => {
+    if (periodo === "semanal") {
+      return pago.semana >= filtro.semanaInicio && pago.semana <= filtro.semanaFin;
+    } else if (periodo === "mensual") {
+      const fecha = new Date(pago.fechaCierre);
+      return fecha.getMonth() === filtro.mes && fecha.getFullYear() === filtro.anio;
+    } else { // anual
+      const fecha = new Date(pago.fechaCierre);
+      return fecha.getFullYear() === filtro.anio;
+    }
+  });
+  
+  // Filtrar bonos según el período
+  const bonosFiltrados = bonos.filter(bono => {
+    if (periodo === "semanal") {
+      return bono.semana >= filtro.semanaInicio && bono.semana <= filtro.semanaFin;
+    } else if (periodo === "mensual") {
+      const fecha = new Date(bono.fecha);
+      return fecha.getMonth() === filtro.mes && fecha.getFullYear() === filtro.anio;
+    } else { // anual
+      const fecha = new Date(bono.fecha);
+      return fecha.getFullYear() === filtro.anio;
+    }
+  });
+  
+  // Calcular totales
+  let totalNomina = 0;
+  let totalHoras = 0;
+  let cantidadEmpleados = 0;
+  let totalBonos = 0;
+  
+  // Datos para gráficos
+  const datosPorSemana = {};
+  const datosPorTipo = {
+    Operativo: 0,
+    Administrativo: 0
+  };
+  const datosPorDepartamento = {};
+  
+  pagosFiltrados.forEach(pago => {
+    // Inicializar datos de la semana si no existe
+    if (!datosPorSemana[pago.semana]) {
+      datosPorSemana[pago.semana] = {
+        total: 0,
+        horas: 0,
+        empleados: 0
+      };
+    }
+    
+    // Procesar registros de la semana
+    pago.registros.forEach(registro => {
+      const emp = empleados.find(e => e.numEmpleado === registro.numEmpleado);
+      if (!emp) return;
+      
+      const horasTrabajadas = registro.horasTrabajadas || 0;
+      const sueldoHora = registro.sueldoHora || 0;
+      const subtotal = horasTrabajadas * sueldoHora;
+      
+      const descuentos = (registro.infonavit ? registro.montoInfonavit : 0) + 
+                         (registro.transporte ? registro.montoTransporte : 0) + 
+                         (registro.otrosDescuentos || 0);
+      
+      const total = subtotal - descuentos + (registro.extras || 0);
+      
+      totalNomina += total;
+      totalHoras += horasTrabajadas;
+      cantidadEmpleados++;
+      
+      // Agregar a datos por semana
+      datosPorSemana[pago.semana].total += total;
+      datosPorSemana[pago.semana].horas += horasTrabajadas;
+      datosPorSemana[pago.semana].empleados++;
+      
+      // Agregar a datos por tipo
+      datosPorTipo[emp.tipoEmpleado || "Operativo"] += total;
+      
+      // Agregar a datos por departamento
+      const depto = emp.departamento || emp.lineaDepto || "Sin departamento";
+      if (!datosPorDepartamento[depto]) {
+        datosPorDepartamento[depto] = 0;
+      }
+      datosPorDepartamento[depto] += total;
+    });
+  });
+  
+  // Calcular total de bonos
+  totalBonos = bonosFiltrados.reduce((sum, bono) => sum + bono.monto, 0);
+  
+  return {
+    total: totalNomina,
+    promedio: cantidadEmpleados > 0 ? totalNomina / cantidadEmpleados : 0,
+    horas: totalHoras,
+    bonos: totalBonos,
+    porSemana: datosPorSemana,
+    porTipo: datosPorTipo,
+    porDepartamento: datosPorDepartamento
+  };
+}
+
+function actualizarGraficoNomina(datos) {
+  const ctx = $("#chartNomina").getContext("2d");
+  
+  // Destruir gráfico anterior si existe
+  if (chartNomina) {
+    chartNomina.destroy();
+  }
+  
+  // Preparar datos para el gráfico
+  const labels = Object.keys(datos.porSemana).map(semana => `Semana ${semana}`);
+  const values = Object.values(datos.porSemana).map(d => d.total);
+  
+  // Crear nuevo gráfico
+  chartNomina = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Total Nómina",
+        data: values,
+        backgroundColor: "rgba(67, 160, 71, 0.5)",
+        borderColor: "rgba(46, 125, 50, 1)",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: "Nómina por Semana",
+          font: { size: 16 }
+        },
+        legend: {
+          display: true,
+          position: "top"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ": " + R(context.raw);
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return R(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function actualizarGraficoDistribucion(datos) {
+  const ctx = $("#chartDistribucion").getContext("2d");
+  
+  // Destruir gráfico anterior si existe
+  if (chartDistribucion) {
+    chartDistribucion.destroy();
+  }
+  
+  // Preparar datos para el gráfico de distribución por departamento
+  const labels = Object.keys(datos.porDepartamento);
+  const values = Object.values(datos.porDepartamento);
+  
+  // Colores para cada departamento
+  const backgroundColors = [
+    "rgba(67, 160, 71, 0.5)",
+    "rgba(46, 125, 50, 0.5)",
+    "rgba(26, 90, 30, 0.5)",
+    "rgba(0, 121, 107, 0.5)",
+    "rgba(0, 105, 92, 0.5)",
+    "rgba(0, 77, 64, 0.5)",
+    "rgba(56, 142, 60, 0.5)",
+    "rgba(76, 175, 80, 0.5)",
+    "rgba(129, 199, 132, 0.5)"
+  ];
+  
+  const borderColors = [
+    "rgba(67, 160, 71, 1)",
+    "rgba(46, 125, 50, 1)",
+    "rgba(26, 90, 30, 1)",
+    "rgba(0, 121, 107, 1)",
+    "rgba(0, 105, 92, 1)",
+    "rgba(0, 77, 64, 1)",
+    "rgba(56, 142, 60, 1)",
+    "rgba(76, 175, 80, 1)",
+    "rgba(129, 199, 132, 1)"
+  ];
+  
+  // Crear nuevo gráfico
+  chartDistribucion = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: backgroundColors.slice(0, labels.length),
+        borderColor: borderColors.slice(0, labels.length),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: "Distribución por Departamento",
+          font: { size: 16 }
+        },
+        legend: {
+          display: true,
+          position: "right"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || "";
+              const value = context.raw;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = Math.round((value / total) * 100);
+              return `${label}: ${R(value)} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function actualizarGraficoTendencia(datos) {
+  const ctx = $("#chartTendencia").getContext("2d");
+  
+  // Destruir gráfico anterior si existe
+  if (chartTendencia) {
+    chartTendencia.destroy();
+  }
+  
+  // Preparar datos para el gráfico de tendencia
+  const labels = Object.keys(datos.porSemana).map(semana => `Semana ${semana}`);
+  const horas = Object.values(datos.porSemana).map(d => d.horas);
+  const promedios = Object.values(datos.porSemana).map(d => d.empleados > 0 ? d.total / d.empleados : 0);
+  
+  // Crear nuevo gráfico
+  chartTendencia = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Horas Trabajadas",
+          data: horas,
+          backgroundColor: "rgba(0, 121, 107, 0.5)",
+          borderColor: "rgba(0, 121, 107, 1)",
+          borderWidth: 2,
+          tension: 0.4,
+          yAxisID: "y"
+        },
+        {
+          label: "Promedio por Empleado",
+          data: promedios,
+          backgroundColor: "rgba(46, 125, 50, 0.5)",
+          borderColor: "rgba(46, 125, 50, 1)",
+          borderWidth: 2,
+          tension: 0.4,
+          yAxisID: "y1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: "Tendencia de Horas y Promedio",
+          font: { size: 16 }
+        },
+        legend: {
+          display: true,
+          position: "top"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              if (context.dataset.label === "Promedio por Empleado") {
+                return context.dataset.label + ": " + R(context.raw);
+              } else {
+                return context.dataset.label + ": " + context.raw.toLocaleString();
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: "linear",
+          display: true,
+          position: "left",
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: "Horas"
+          }
+        },
+        y1: {
+          type: "linear",
+          display: true,
+          position: "right",
+          beginAtZero: true,
+          grid: {
+            drawOnChartArea: false
+          },
+          title: {
+            display: true,
+            text: "Promedio ($)"
+          },
+          ticks: {
+            callback: function(value) {
+              return R(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ===== Configuración ===== */
+let editingUsuario = null;
+const DLU = $("#dlgUsuario");
+const FMU = $("#formUsuario");
+
+function initConfiguracion() {
+  if (!(currentUser && (currentUser.rol === "admin" || currentUser.rol === "gerencia"))) {
+    T("No tienes permisos para acceder a esta sección.", "warning");
+    g("dashboard");
+    return;
+  }
+  
+  renderUsuarios();
+}
+
+function renderUsuarios() {
+  const tablaUsuarios = $("#tablaUsuarios tbody");
+  tablaUsuarios.innerHTML = "";
+  
+  const usuarios = readUsuarios();
+  
+  usuarios.forEach(usuario => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${H(usuario.username)}</td>
+      <td>${H(usuario.nombre)}</td>
+      <td>${usuario.rol === "admin" ? "Administrador" : (usuario.rol === "gerencia" ? "Gerencia" : "Recursos Humanos")}</td>
+      <td>
+        <button class="btn small" data-action="edit-usuario" data-id="${usuario.id}">Editar</button>
+        <button class="btn small outline" data-action="delete-usuario" data-id="${usuario.id}" ${usuario.username === "admin" ? "disabled" : ""}>Eliminar</button>
+      </td>
+    `;
+    tablaUsuarios.appendChild(tr);
+  });
+}
+
+$("#btnNuevoUsuario").addEventListener("click", () => {
+  editingUsuario = null;
+  $("#modalTitleUsuario").textContent = "Registrar Usuario";
+  $("#nombreUsuario").value = "";
+  $("#username").value = "";
+  $("#password").value = "";
+  $("#rolUsuario").value = "";
+  
+  DLU.showModal();
+});
+
+FMU.addEventListener("submit", (e) => {
+  e.preventDefault();
+  
+  const nombre = $("#nombreUsuario").value.trim();
+  const username = $("#username").value.trim();
+  const password = $("#password").value;
+  const rol = $("#rolUsuario").value;
+  
+  if (!nombre || !username || !password || !rol) {
+    T("Completa todos los campos", "warning");
+    return;
+  }
+  
+  const usuarios = readUsuarios();
+  
+  // Verificar si el usuario ya existe
+  if (!editingUsuario && usuarios.some(u => u.username === username)) {
+    T("El nombre de usuario ya existe", "error");
+    return;
+  }
+  
+  if (editingUsuario) {
+    // Actualizar usuario
+    const index = usuarios.findIndex(u => u.id === editingUsuario);
+    if (index >= 0) {
+      const usuarioAnterior = usuarios[index];
+      usuarios[index] = {
+        ...usuarioAnterior,
+        nombre,
+        username,
+        rol,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Actualizar contraseña solo si se proporcionó una nueva
+      if (password) {
+        usuarios[index].password = password;
+      }
+    }
+  } else {
+    // Nuevo usuario
+    usuarios.push({
+      id: generateId(),
+      nombre,
+      username,
+      password,
+      rol,
+      createdAt: new Date().toISOString()
+    });
+  }
+  
+  writeUsuarios(usuarios);
+  DLU.close();
+  renderUsuarios();
+  T(editingUsuario ? "Usuario actualizado correctamente" : "Usuario registrado correctamente", "success");
+});
+
+$("#cerrarModalUsuario").addEventListener("click", () => DLU.close());
+$("#cancelarFormUsuario").addEventListener("click", () => DLU.close());
+
+$("#tablaUsuarios").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn || btn.disabled) return;
+  
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  const usuarios = readUsuarios();
+  const usuario = usuarios.find(u => u.id === id);
+  
+  if (!usuario) return;
+  
+  if (action === "edit-usuario") {
+    editingUsuario = id;
+    $("#modalTitleUsuario").textContent = "Editar Usuario";
+    $("#nombreUsuario").value = usuario.nombre;
+    $("#username").value = usuario.username;
+    $("#password").value = ""; // No mostrar contraseña
+    $("#rolUsuario").value = usuario.rol;
+    
+    DLU.showModal();
+  } else if (action === "delete-usuario") {
+    C("Eliminar Usuario", `¿Estás seguro de eliminar el usuario "${usuario.nombre}"?`, "Sí, eliminar").then(result => {
+      if (result.isConfirmed) {
+        const index = usuarios.findIndex(u => u.id === id);
+        if (index >= 0) {
+          usuarios.splice(index, 1);
+          writeUsuarios(usuarios);
+          renderUsuarios();
+          T("Usuario eliminado correctamente", "success");
+        }
+      }
+    });
+  }
+});
+
+/* ===== Init ===== */
+(function init(){
+  const mx=D();
+  $("#fechaIngresoMaPe").max=mx;
+  $("#fechaIngresoIMSS").max=mx;
+  
+  // Actualizar la fecha actual en el dashboard
+  document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('currentDate')) {
+      document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-MX');
+    }
+  });
+  
+  render();
+  
+  // Actualizar dashboard si está disponible
+  if ($("#dashEmpleados")) {
+    updateDashboardStats();
+  }
+})();
+</script>
+</body></html>
